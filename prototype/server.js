@@ -27,7 +27,10 @@ const server = http.createServer((req, res) => {
         res.end(`Server Error: ${err.code}`);
       }
     } else {
-      res.writeHead(200, { 'Content-Type': contentType });
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      });
       res.end(content, 'utf-8');
     }
   });
@@ -35,7 +38,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n==================================================`);
-  console.log(`⚡ SETLY Web App Server Running!`);
+  console.log(`🔥 PUSHPA Server Running!`);
   console.log(`Local Preview:   http://localhost:${PORT}`);
   console.log(`==================================================\n`);
 });

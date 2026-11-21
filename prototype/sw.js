@@ -1,4 +1,4 @@
-const CACHE_NAME = "setly-offline-v1";
+const CACHE_NAME = "pushpa-offline-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,6 +6,8 @@ const ASSETS = [
   "./app.js",
   "./engine.js",
   "./storage.js",
+  "./logbook-engine.js",
+  "./moves.js",
   "./manifest.json"
 ];
 
@@ -29,14 +31,25 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// Network-first with cache fallback
 self.addEventListener("fetch", (e) => {
+  if (e.request.method !== "GET") return;
   e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      return cachedResponse || fetch(e.request).catch(() => {
-        if (e.request.destination === "document") {
-          return caches.match("./index.html");
+    fetch(e.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const resClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, resClone));
         }
-      });
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(e.request).then((cached) => {
+          if (cached) return cached;
+          if (e.request.destination === "document") {
+            return caches.match("./index.html");
+          }
+        });
+      })
   );
 });
