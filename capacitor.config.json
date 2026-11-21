@@ -1,0 +1,12 @@
+{
+  "appId": "com.setly.app",
+  "appName": "SETLY",
+  "webDir": "prototype",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
