@@ -242,7 +242,6 @@ function initPWA() {
         }
         deferredPrompt = null;
       } else {
-        // iOS or already installed
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         if (isIOS) {
           $("#ios-pwa-guide")?.classList.remove("hidden");
@@ -252,6 +251,78 @@ function initPWA() {
       }
     };
   }
+
+  // Quick Mobile App Banners on Today Tab
+  $("#btn-banner-android")?.addEventListener("click", () => {
+    S.open();
+    const sheetContent = $("#sc");
+    sheetContent.innerHTML = `
+      <p class="sub">ANDROID INSTALLATION</p>
+      <h2 style="font-size: 24px; font-weight: 800; margin-top: 2px;">Install on Android</h2>
+      <div style="margin-top: 14px;">
+        <div class="row">
+          <div>
+            <b>Option 1: One-Tap Web App (Recommended)</b>
+            <small>Runs standalone with offline support and zero storage overhead.</small>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <b>Option 2: Standalone Android APK</b>
+            <small>Available in GitHub Releases or via PWABuilder package.</small>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="cta" id="btn-pwa-sheet-prompt">Install App on Phone</button>
+      <a href="https://github.com/sathwik328/setly/releases" target="_blank" class="btn-secondary" style="width: 100%; height: 44px; margin-top: 8px; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+        View APK Releases on GitHub
+      </a>
+    `;
+    $("#ph").classList.add("open");
+
+    $("#btn-pwa-sheet-prompt")?.addEventListener("click", () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+      } else {
+        alert("Tap Chrome's menu (⋮) in the top-right corner and select 'Install app' or 'Add to Home screen'.");
+      }
+    });
+  });
+
+  $("#btn-banner-ios")?.addEventListener("click", () => {
+    S.open();
+    const sheetContent = $("#sc");
+    sheetContent.innerHTML = `
+      <p class="sub">IPHONE & IPAD INSTALLATION</p>
+      <h2 style="font-size: 24px; font-weight: 800; margin-top: 2px;">Add to Home Screen</h2>
+      <div style="margin-top: 14px;">
+        <div class="row">
+          <div>
+            <b>1. Open Safari</b>
+            <small>Open https://sathwik328.github.io/setly/ in Safari on your iPhone.</small>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <b>2. Tap the Share Button</b>
+            <small>Tap the Share button at the bottom of the screen (the square with arrow ↑).</small>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <b>3. Tap 'Add to Home Screen'</b>
+            <small>Scroll down and tap 'Add to Home Screen', then tap 'Add' in the top right.</small>
+          </div>
+        </div>
+      </div>
+      <div class="warn" style="margin-top: 12px;">
+        <span>Runs fullscreen with offline caching, local data persistence, and workout sound chimes!</span>
+      </div>
+      <button type="button" class="btn-secondary" style="width: 100%; height: 44px; margin-top: 14px;" id="btn-close-ios-sheet">Got It</button>
+    `;
+    $("#ph").classList.add("open");
+    $("#btn-close-ios-sheet")?.addEventListener("click", closeSheet);
+  });
 }
 
 /* ==========================================================================
