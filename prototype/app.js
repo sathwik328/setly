@@ -771,6 +771,15 @@ function initGuidedPlayer() {
   $("#btn-guided-skip")?.addEventListener("click", () => {
     advanceGuidedMove();
   });
+
+  $("#btn-close-guided")?.addEventListener("click", () => {
+    clearInterval(guidedTimerInterval);
+    $("#guided-player-screen").classList.remove("active");
+  });
+
+  $("#btn-finish-guided-early")?.addEventListener("click", () => {
+    finishGuidedWorkout();
+  });
 }
 
 function openGuidedSelectionSheet() {
@@ -838,6 +847,11 @@ function renderGuidedMoveUI() {
   $("#guided-move-name").textContent = move.name;
   $("#guided-cue-disp").textContent = move.cues[0] || "";
 
+  const chipsEl = $("#guided-move-chips");
+  if (chipsEl) {
+    chipsEl.innerHTML = move.primaryMuscles.map(m => `<span class="chip">${m.toUpperCase()}</span>`).join("");
+  }
+
   // Highlight working muscles
   $$(".muscle-highlight-poly").forEach(poly => poly.classList.remove("active-working"));
   move.primaryMuscles.forEach(m => {
@@ -878,9 +892,19 @@ function updateGuidedCalories() {
 
 function advanceGuidedMove() {
   clearInterval(guidedTimerInterval);
+
+  if (!guidedActiveRoutine || !guidedActiveRoutine.moves || guidedActiveRoutine.moves.length === 0) {
+    const defaultRoutine = GUIDED_ROUTINES["full_body_ignite"] || Object.values(GUIDED_ROUTINES)[0];
+    const allMoveIds = [...defaultRoutine.warmup, ...defaultRoutine.main, ...defaultRoutine.cooldown];
+    guidedActiveRoutine = {
+      ...defaultRoutine,
+      moves: allMoveIds.map(id => GUIDED_MOVES.find(m => m.id === id)).filter(Boolean)
+    };
+  }
+
   guidedMoveIndex++;
   S.done();
-  if (guidedActiveRoutine && guidedActiveRoutine.moves && guidedMoveIndex < guidedActiveRoutine.moves.length) {
+  if (guidedMoveIndex < guidedActiveRoutine.moves.length) {
     renderGuidedMoveUI();
   } else {
     finishGuidedWorkout();
