@@ -1,83 +1,94 @@
-# SETLY — Smart Workout Planner & Progressive Overload Engine
+# ⚡ SETLY — Smart Workout Planner
 
 > **Lift. Log. Level up.**  
-> SETLY tells you exactly what to lift today (exercises, sets, reps, weight), learns from how each set felt, and shows clear reports so you always know if you're getting stronger.
+> SETLY tells you exactly what to lift today (exercises, sets, reps, weight), learns from how each set felt, and shows clear progress so you always know you are getting stronger.
 
 ---
 
-## ⚡ Highlights & Key Features
+## 🌐 Live Application
 
-- **Program Length Selector**: Choose from 30 days (Quick start), 60 days (Solid block), 90 days (Transformation), 180 days, 360 days, or a custom duration (14–365 days).
-- **Full-Length Day Map**: Day 1 to Day N visual roadmap with a 5-column grid. Completed days show electric lime checkmarks; current day pulses; future days lock until unlocked in sequence.
-- **Anatomical Body Map**: Male and Female clean SVG anatomy outlines with heat-map shading based on weekly volume sets, muscle detail cards, and a "+ Prioritize Volume" toggle.
-- **One-Tap Logging**: Check off sets with a single tap, record inline effort (*Easy / Good / Hard*), and adjust weights/reps with steppers.
-- **Synthesized Web Audio FX**: Zero external audio files — synthesized chimes for taps, sheet opens, set completions (3-note chime), and locked day alerts. Includes an instant speaker mute toggle.
-- **Floating Rest Timer**: Automatic non-drifting countdown with background timestamp math, circular SVG progress, and completion sound.
-- **Integrated Gym Tools**: Visual Barbell Plate Calculator (Olympic bar + colored plates), Dynamic 4-step Warmup Ladder, and Safe Movement Pattern Swaps.
-- **Local-First Privacy**: 100% offline-ready PWA with Web Crypto SHA-256 account security, JSON state backup, and CSV workout logs export.
-- **Canvas Share Card Generator**: Generates high-res dark-themed post-workout celebration cards for instant saving/sharing.
+Experience the full mobile web application live in your browser:  
+👉 **[https://setly-zeta.vercel.app/](https://setly-zeta.vercel.app/)**
+
+*Works on all mobile devices (iOS & Android) and desktop browsers.*
 
 ---
 
-## 📁 Repository & Folder Structure
+## 📱 Install as an App on Your Phone
 
-```text
-D:\Workout Planner/
-├── .github/
-│   └── workflows/
-│       └── pages.yml        # Automatic GitHub Pages CI/CD deployment
-├── prototype/               # Main application source (Local-first PWA)
-│   ├── index.html           # Single-Page Application markup & modals
-│   ├── styles.css           # "Gym at Night" design system & animations
-│   ├── app.js               # Reactive UI controller, audio FX & routing
-│   ├── engine.js            # Pure-function mathematical training engine
-│   ├── storage.js           # LocalStorage repository & crypto hashing
-│   ├── server.js            # Lightweight Node.js preview server
-│   ├── manifest.json        # PWA Web App Manifest
-│   └── sw.js                # Offline Service Worker cache
-├── capacitor.config.json    # Capacitor configuration for Android/iOS
-├── BUILD_ANDROID.md         # Step-by-step Android APK compilation guide
-├── BUILD_IOS.md             # iOS Xcode / TestFlight deployment guide
-├── DEPLOY.md                # GitHub Pages & hosting instructions
-├── README.md                # Project documentation
-└── .gitignore               # Ignored build artifacts & temp files
-```
+SETLY is a Progressive Web App (PWA) designed to look and feel like a native mobile app.
+
+### 🤖 For Android Users:
+1. Open **[https://setly-zeta.vercel.app/](https://setly-zeta.vercel.app/)** in Google Chrome.
+2. Tap the **"Android (APK / Install)"** button on the home screen banner (or tap Chrome's menu `⋮` → **Add to Home screen** / **Install app**).
+3. The SETLY app icon will appear on your home screen. It runs in full screen and works offline.
+
+### 🍏 For iPhone Users:
+1. Open **[https://setly-zeta.vercel.app/](https://setly-zeta.vercel.app/)** in **Safari**.
+2. Tap the **Share** button at the bottom of the screen (the square with an arrow pointing up `↑`).
+3. Scroll down and tap **Add to Home Screen**, then tap **Add**.
+4. The SETLY app icon is installed! It opens in standalone full-screen mode without any browser address bar.
 
 ---
 
-## 🚀 Running Locally
+## ✨ Key Features & Capabilities
 
-1. **Option A: With the included Node.js server**:
-   ```bash
-   cd prototype
-   node server.js
-   ```
-   Open your browser to: **`http://localhost:8080`**
+### 1. Flexible Program Length (30 to 360 Days)
+- Choose the exact commitment that fits your schedule:
+  - **30 Days (Quick Start)**: 4 weeks • Perfect for a fitness habit reset.
+  - **60 Days (Solid Block)**: 8 weeks • Full periodized training block.
+  - **90 Days (Full Transformation)**: 12 weeks • Foundation, Build, and Peak phases.
+  - **180 Days (Long Game)**: 26 weeks • Advanced progressive overload mesocycle.
+  - **360 Days (Full Year)**: 52 weeks • Complete annual athletic roadmap with built-in deloads.
+  - **Custom Duration**: Enter any length from 14 to 365 days.
 
-2. **Option B: Direct file opening**:
-   Open `prototype/index.html` directly in any modern browser (Chrome, Safari, Edge, Firefox).
+### 2. Full-Length Day Map & Unlock System
+- View every single workout from **Day 1 to Day N** in an interactive 5-column grid.
+- **Completed Days**: Highlighted with an electric lime checkmark.
+- **Current Day**: Pulses with a gentle neon glow.
+- **Upcoming Locked Days**: Kept locked until you finish the previous day, preventing program overload.
+- **Rest & Recovery Days**: Marked with dashed circles and mobility routines.
+- **Zero-Penalty Plan Shifter**: Missed a day or need extra recovery? Shift the plan forward with one tap — life happens, and your streak never breaks.
+
+### 3. Interactive Anatomical Body Map
+- **Male & Female Outlines**: Switch between anatomical outlines with one tap.
+- **Volume Heat-Map Shading**: Muscles glow brighter in electric lime based on how much training volume they received this week.
+- **Muscle Info Cards**: Tap any muscle region (Chest, Lats, Shoulders, Biceps, Quads, etc.) to see weekly sets, recommended ranges, and best exercises.
+- **Prioritize Muscle Toggle**: Tap "+ Prioritize Volume" on lagging muscles to have the training engine automatically prescribe extra targeted volume.
+
+### 4. One-Tap Live Workout Logging
+- **Fast Set Tracking**: Check off sets with a single tap.
+- **Weight & Rep Steppers**: Fine-tune your load with easy `+` and `-` steppers ($2.5\text{ kg}$ and $1\text{ rep}$).
+- **Inline Effort Feedback**: Rate every working set as **Easy**, **Good**, or **Hard**.
+- **Adaptive Double Progression**: The engine reads your effort rating to automatically calculate your target weights for the next session.
+
+### 5. Gym Tools Included
+- **Barbell Plate Calculator**: Visual graphic showing the exact colored Olympic plates (25kg, 20kg, 15kg, 10kg, 5kg, 2.5kg, 1.25kg) to load on each side of the barbell.
+- **Dynamic 4-Step Warmup Ladder**: Progressive warmup ramp (Bar only $\to$ 50% $\to$ 70% $\to$ 85%) to prime your nervous system and protect joints.
+- **Movement Pattern Swaps**: Swap any exercise with a safe alternative targeting the same pattern without aggravating joint limitations.
+- **Floating Rest Timer**: Automatic countdown with synthesized sound chimes that won't drift if your phone screen goes to sleep.
+
+### 6. Synthesized Audio & Motion Design
+- **Web Audio Sound Effects**: Zero external audio files to download — snappy synthesized chimes for button taps, tab switches, sheet opens, and set completions (3-note chime).
+- **Mute Toggle**: Quick speaker button in the top header with persistent settings.
+- **"Gym at Night" Aesthetic**: Warm dark palette (`#0E0F0C`) accented with Electric Lime (`#C6FF3D`) and high-readability typography (`Bricolage Grotesque` and `Inter`).
 
 ---
 
-## 🌐 Deploying to GitHub Pages
+## 🔒 Privacy & Local-First Philosophy
 
-This repository includes a GitHub Actions workflow (`.github/workflows/pages.yml`) that automatically deploys the latest version to GitHub Pages on every push to `main`.
-
-### One-Time Setup in GitHub:
-1. Go to your repository on GitHub: `https://github.com/sathwik328/setly`
-2. Navigate to **Settings** → **Pages**.
-3. Under **Build and deployment** → **Source**, select **GitHub Actions**.
-4. Push to `main` — your live app will be published at:
-   👉 **`https://sathwik328.github.io/setly/`**
+- **No Mandatory Login**: Click **"Continue as Guest"** for instant access.
+- **100% On-Device Storage**: Your workout logs, body weights, and personal records never leave your phone.
+- **Web Crypto Hashing**: Account passwords are encrypted using SHA-256 directly on your device.
+- **Data Export & Freedom**: Export your full state backup as a `.JSON` file or your complete workout history as a `.CSV` file anytime.
 
 ---
 
-## 📱 Mobile Installation (Android & iPhone)
+## 🛠️ Technology Stack
 
-- **Android (Chrome)**: Open the URL, tap the in-app **"Install App"** button (or Chrome menu `⋮` → *Add to Home screen*).
-- **iPhone (Safari)**: Open the URL in Safari, tap the **Share** button (`⎙` / `↑`), then tap **Add to Home Screen**.
-
----
-
-## 📄 License
-MIT License. Created with precision for strength and hypertrophy athletes.
+- **Frontend**: Vanilla JavaScript (ES Modules), HTML5, CSS3 Custom Properties.
+- **Engine**: Pure-function training engine (Epley 1RM formula, greedy plate math, rolling mesocycles).
+- **Audio**: Web Audio API oscillator synthesis.
+- **Graphics**: Hand-crafted SVG anatomy diagrams, pure SVG sparklines, and HTML5 Canvas share cards.
+- **PWA**: Web App Manifest & Service Worker with offline caching.
+- **Hosting**: Deployed on **Vercel** with edge caching.

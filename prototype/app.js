@@ -299,7 +299,7 @@ function initPWA() {
         <div class="row">
           <div>
             <b>1. Open Safari</b>
-            <small>Open https://sathwik328.github.io/setly/ in Safari on your iPhone.</small>
+            <small>Open https://setly-zeta.vercel.app/ in Safari on your iPhone.</small>
           </div>
         </div>
         <div class="row">
