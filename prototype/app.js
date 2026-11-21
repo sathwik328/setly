@@ -819,6 +819,15 @@ function startGuidedWorkout(routineKey) {
 }
 
 function renderGuidedMoveUI() {
+  if (!guidedActiveRoutine || !guidedActiveRoutine.moves || guidedActiveRoutine.moves.length === 0) {
+    const defaultRoutine = GUIDED_ROUTINES["full_body_ignite"] || Object.values(GUIDED_ROUTINES)[0];
+    const allMoveIds = [...defaultRoutine.warmup, ...defaultRoutine.main, ...defaultRoutine.cooldown];
+    guidedActiveRoutine = {
+      ...defaultRoutine,
+      moves: allMoveIds.map(id => GUIDED_MOVES.find(m => m.id === id)).filter(Boolean)
+    };
+  }
+
   const move = guidedActiveRoutine.moves[guidedMoveIndex];
   if (!move) {
     finishGuidedWorkout();
@@ -871,7 +880,7 @@ function advanceGuidedMove() {
   clearInterval(guidedTimerInterval);
   guidedMoveIndex++;
   S.done();
-  if (guidedMoveIndex < guidedActiveRoutine.moves.length) {
+  if (guidedActiveRoutine && guidedActiveRoutine.moves && guidedMoveIndex < guidedActiveRoutine.moves.length) {
     renderGuidedMoveUI();
   } else {
     finishGuidedWorkout();
@@ -884,8 +893,9 @@ function finishGuidedWorkout() {
 
   const weight = state.profile.weightKg || 70;
   const calories = Math.round(5.5 * 3.5 * weight / 200 * (guidedTotalElapsedSeconds / 60));
+  const rName = guidedActiveRoutine?.name || "Guided Session";
 
-  alert(`🔥 Workout Finished!\n\nCompleted ${guidedActiveRoutine.name} in ${Math.round(guidedTotalElapsedSeconds / 60)} min (~${calories} estimated kcal). Fantastic effort!`);
+  alert(`🔥 Workout Finished!\n\nCompleted ${rName} in ${Math.round(guidedTotalElapsedSeconds / 60)} min (~${calories} estimated kcal). Fantastic effort!`);
   S.done();
 }
 
