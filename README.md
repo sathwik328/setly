@@ -1,94 +1,86 @@
-# ⚡ SETLY — Smart Workout Planner
+# 🔥 PUSH–PA — The Smart Workout & Strength Tracker
 
-> **Lift. Log. Level up.**  
-> SETLY tells you exactly what to lift today (exercises, sets, reps, weight), learns from how each set felt, and shows clear progress so you always know you are getting stronger.
+> **Train. Track. Burn.**  
+> PUSHPA gives you two distinct ways to train: an automated **AI Planner** that designs and adapts your periodized mesocycles, and an intuitive **Logbook** with Notion-style freedom, spark AI progression suggestions, and intelligent missed-day queueing.
 
 ---
 
 ## 🌐 Live Application
 
-Experience the full mobile web application live in your browser:  
+Experience the mobile web application live:  
 👉 **[https://setly-zeta.vercel.app/](https://setly-zeta.vercel.app/)**
 
-*Works on all mobile devices (iOS & Android) and desktop browsers.*
+*Works on all modern mobile phones (iOS Safari, Android Chrome) and desktop browsers.*
 
 ---
 
-## 📱 Install as an App on Your Phone
-
-SETLY is a Progressive Web App (PWA) designed to look and feel like a native mobile app.
+## 📱 Install as an App on Your Device
 
 ### 🤖 For Android Users:
 1. Open **[https://setly-zeta.vercel.app/](https://setly-zeta.vercel.app/)** in Google Chrome.
-2. Tap the **"Android (APK / Install)"** button on the home screen banner (or tap Chrome's menu `⋮` → **Add to Home screen** / **Install app**).
-3. The SETLY app icon will appear on your home screen. It runs in full screen and works offline.
+2. Tap the **"Install Pushpa App"** banner or tap Chrome menu `⋮` → **Install app** / **Add to Home screen**.
+3. Or generate a standalone `.apk` directly via [PWABuilder](https://www.pwabuilder.com) using the guide in [BUILD_ANDROID.md](BUILD_ANDROID.md).
 
 ### 🍏 For iPhone Users:
 1. Open **[https://setly-zeta.vercel.app/](https://setly-zeta.vercel.app/)** in **Safari**.
-2. Tap the **Share** button at the bottom of the screen (the square with an arrow pointing up `↑`).
-3. Scroll down and tap **Add to Home Screen**, then tap **Add**.
-4. The SETLY app icon is installed! It opens in standalone full-screen mode without any browser address bar.
+2. Tap the **Share** button (`↑`) at the bottom of the screen.
+3. Tap **Add to Home Screen**, then tap **Add**.
+4. PUSHPA launches as a full-screen standalone native experience without browser chrome. See [BUILD_IOS.md](BUILD_IOS.md).
 
 ---
 
-## ✨ Key Features & Capabilities
+## 🔥 What's New in Pushpa (Round 4)
 
-### 1. Flexible Program Length (30 to 360 Days)
-- Choose the exact commitment that fits your schedule:
-  - **30 Days (Quick Start)**: 4 weeks • Perfect for a fitness habit reset.
-  - **60 Days (Solid Block)**: 8 weeks • Full periodized training block.
-  - **90 Days (Full Transformation)**: 12 weeks • Foundation, Build, and Peak phases.
-  - **180 Days (Long Game)**: 26 weeks • Advanced progressive overload mesocycle.
-  - **360 Days (Full Year)**: 52 weeks • Complete annual athletic roadmap with built-in deloads.
-  - **Custom Duration**: Enter any length from 14 to 365 days.
+### 1. Cinematic Fire Experience & Rebrand
+- **Signature Fire Theme**: Deep OLED dark canvas (`#050505`, `#0F0D0C`, `#191513`), blazing accents (`#FF3D2E`, `#FF6A00`, `#FFB020`), and heated barbell glowing wordmark (`PUSH–PA`).
+- **Interactive Fire Splash Intro**: Canvas floating ember particles, flickering multi-layer SVG flame, and synthesized Web Audio sound effects (sub-bass ignition boom, filtered noise whoosh, fire crackle, and letter slam impact).
+- **Dark Mode Contrast Perfection**: Resolved white-on-white text input styling with explicit system color overrides and `inputmode="decimal"`.
 
-### 2. Full-Length Day Map & Unlock System
-- View every single workout from **Day 1 to Day N** in an interactive 5-column grid.
-- **Completed Days**: Highlighted with an electric lime checkmark.
-- **Current Day**: Pulses with a gentle neon glow.
-- **Upcoming Locked Days**: Kept locked until you finish the previous day, preventing program overload.
-- **Rest & Recovery Days**: Marked with dashed circles and mobility routines.
-- **Zero-Penalty Plan Shifter**: Missed a day or need extra recovery? Shift the plan forward with one tap — life happens, and your streak never breaks.
+### 2. Dual Training Modes (Switch Anytime)
+Switch instantly with the top pill switcher or mode selector:
+- **Mode A: AI Planner**
+  - **Rolling Adaptive Mesocycles**: 30, 60, 90, 180, 360-day or custom program lengths.
+  - **Interactive Day Map**: Visual 5-column roadmap with completed checks, current day pulses, and locked progression states.
+  - **Anatomical Volume Heatmap**: Interactive male/female muscle outlines glowing according to weekly set volume.
+  - **Smart Double Progression**: Auto-adjusts target loads based on real-time RPE effort ratings (*Easy*, *Good*, *Hard*).
+- **Mode B: Notion-Style Free Logbook**
+  - **Weekly Overview & Daily Pages**: Clean, minimalist blocks for freeform workout tracking.
+  - **Display-Only "Last Time" Line**: Shows your previous session's weight and reps as a quick visual reference without ever pre-filling inputs.
+  - **Spark AI Suggestions**: On-device rules engine evaluating rep ranges, load maintenance, and volume adjustments.
+  - **Intelligent Missed-Day Queue**: Missed sessions roll into open rest days within the week, automatically resetting cleanly on Monday so you never fall behind.
+  - **Consistency Reports**: Plain-English progress summaries and streak analytics.
 
-### 3. Interactive Anatomical Body Map
-- **Male & Female Outlines**: Switch between anatomical outlines with one tap.
-- **Volume Heat-Map Shading**: Muscles glow brighter in electric lime based on how much training volume they received this week.
-- **Muscle Info Cards**: Tap any muscle region (Chest, Lats, Shoulders, Biceps, Quads, etc.) to see weekly sets, recommended ranges, and best exercises.
-- **Prioritize Muscle Toggle**: Tap "+ Prioritize Volume" on lagging muscles to have the training engine automatically prescribe extra targeted volume.
+### 3. Guided Home Workout Player
+- **2D Low-Poly Faceted Skeleton**: Smooth vector athlete displaying joint angles and ground contact line.
+- **Dynamic Fire Muscle Pulses**: Real-time fire-orange highlights on primary muscle groups during each movement phase.
+- **22+ Built-in Exercises**: Squats, Push-Ups, Glute Bridges, Mountain Climbers, Planks, Pike Push-Ups, and more.
+- **Real-Time Calorie & MET Tracking**: Formula-based metabolic equivalent (MET) calorie burning counter updated per tick.
+- **Audio Cues & Interval Timer**: Form cues, common mistake alerts, and work/rest countdowns.
 
-### 4. One-Tap Live Workout Logging
-- **Fast Set Tracking**: Check off sets with a single tap.
-- **Weight & Rep Steppers**: Fine-tune your load with easy `+` and `-` steppers ($2.5\text{ kg}$ and $1\text{ rep}$).
-- **Inline Effort Feedback**: Rate every working set as **Easy**, **Good**, or **Hard**.
-- **Adaptive Double Progression**: The engine reads your effort rating to automatically calculate your target weights for the next session.
-
-### 5. Gym Tools Included
-- **Barbell Plate Calculator**: Visual graphic showing the exact colored Olympic plates (25kg, 20kg, 15kg, 10kg, 5kg, 2.5kg, 1.25kg) to load on each side of the barbell.
-- **Dynamic 4-Step Warmup Ladder**: Progressive warmup ramp (Bar only $\to$ 50% $\to$ 70% $\to$ 85%) to prime your nervous system and protect joints.
-- **Movement Pattern Swaps**: Swap any exercise with a safe alternative targeting the same pattern without aggravating joint limitations.
-- **Floating Rest Timer**: Automatic countdown with synthesized sound chimes that won't drift if your phone screen goes to sleep.
-
-### 6. Synthesized Audio & Motion Design
-- **Web Audio Sound Effects**: Zero external audio files to download — snappy synthesized chimes for button taps, tab switches, sheet opens, and set completions (3-note chime).
-- **Mute Toggle**: Quick speaker button in the top header with persistent settings.
-- **"Gym at Night" Aesthetic**: Warm dark palette (`#0E0F0C`) accented with Electric Lime (`#C6FF3D`) and high-readability typography (`Bricolage Grotesque` and `Inter`).
+### 4. Local-First & Backup Security
+- **100% On-Device Privacy**: All logs, programs, and weights reside in `localStorage`.
+- **Backup & Restore**: Export full database state as JSON or workout history as CSV. Import backups seamlessly on any device.
 
 ---
 
-## 🔒 Privacy & Local-First Philosophy
+## 🛠️ Tech Stack & Architecture
 
-- **No Mandatory Login**: Click **"Continue as Guest"** for instant access.
-- **100% On-Device Storage**: Your workout logs, body weights, and personal records never leave your phone.
-- **Web Crypto Hashing**: Account passwords are encrypted using SHA-256 directly on your device.
-- **Data Export & Freedom**: Export your full state backup as a `.JSON` file or your complete workout history as a `.CSV` file anytime.
+- **Frontend**: Vanilla ES Modules JavaScript, Semantic HTML5, CSS3 Custom Properties.
+- **No Heavy Framework**: Ultra-fast cold boot, instant interactions, zero bundle overhead.
+- **Pure Training Engines**: Modular logic in `engine.js` (Epley 1RM, plate math, mesocycles) and `logbook-engine.js` (queue shifter, suggestions).
+- **Audio Synthesis**: Pure Web Audio API oscillators and noise buffers — no audio assets to fetch.
+- **Packaging**: Ready for Android compilation via Capacitor (`com.pushpa.app`) and GitHub Actions.
 
 ---
 
-## 🛠️ Technology Stack
+## 🧪 Unit Testing
 
-- **Frontend**: Vanilla JavaScript (ES Modules), HTML5, CSS3 Custom Properties.
-- **Engine**: Pure-function training engine (Epley 1RM formula, greedy plate math, rolling mesocycles).
-- **Audio**: Web Audio API oscillator synthesis.
-- **Graphics**: Hand-crafted SVG anatomy diagrams, pure SVG sparklines, and HTML5 Canvas share cards.
-- **PWA**: Web App Manifest & Service Worker with offline caching.
-- **Hosting**: Deployed on **Vercel** with edge caching.
+Unit tests for the missed-day logbook queue engine are integrated directly into `prototype/logbook-engine.js`:
+```powershell
+node -e "import('./prototype/logbook-engine.js').then(m => m.runMissedDayUnitTests())"
+```
+Verifies:
+1. Regular schedules with no misses.
+2. Mid-week shift when a day is missed and caught up on a rest day.
+3. Multi-day misses with weekly reset back to Day 1.
+4. Single-day training with clean Monday reset.

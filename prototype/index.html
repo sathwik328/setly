@@ -3,58 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0E0F0C">
+  <meta name="theme-color" content="#050505">
+  <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SETLY">
-  <title>SETLY — Smart Workout Planner</title>
+  <meta name="apple-mobile-web-app-title" content="Pushpa">
+  <title>PUSHPA — Train. Track. Burn.</title>
   <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="phone" id="ph">
     
-    <!-- Sound Effect Mute Toggle Button -->
-    <button class="snd-toggle-btn" id="snd" aria-label="Toggle Sound Effects">
-      <svg viewBox="0 0 24 24">
-        <path d="M4 9v6h4l5 4V5L8 9H4z"/>
-        <path id="sw" d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/>
-      </svg>
-    </button>
-
-    <!-- Splash Animation Screen -->
-    <div id="splash">
-      <div class="ripple"></div>
-      <div class="sp">
-        <svg class="mark" viewBox="0 0 92 92">
-          <path class="p1" d="M10 46h72"/>
-          <path class="p2" d="M24 28v36M68 28v36"/>
-          <path class="p3" d="M13 36v20M79 36v20"/>
+    <!-- ====================================================================
+         CINEMATIC FIRE INTRO OVERLAY (Section 2)
+         ==================================================================== -->
+    <div id="fire-splash">
+      <canvas id="ember-canvas"></canvas>
+      <div class="fire-shockwave" id="fire-shockwave"></div>
+      
+      <div class="fire-logo-wrap">
+        <!-- Layered Animated SVG Flame -->
+        <svg class="pushpa-flame-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="flame-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <!-- Outer Flame (Red) -->
+          <path class="flame-outer" filter="url(#flame-glow)" d="M50 15 C45 35 25 50 25 75 C25 95 38 110 50 110 C62 110 75 95 75 75 C75 50 55 35 50 15 Z"/>
+          <!-- Mid Flame (Orange) -->
+          <path class="flame-mid" d="M50 35 C44 50 32 62 32 80 C32 94 40 105 50 105 C60 105 68 94 68 80 C68 62 56 50 50 35 Z"/>
+          <!-- Inner Flame (Yellow) -->
+          <path class="flame-inner" d="M50 55 C46 68 38 75 38 88 C38 98 44 102 50 102 C56 102 62 98 62 88 C62 75 54 68 50 55 Z"/>
+          <!-- Core (White-hot) -->
+          <path class="flame-core" d="M50 72 C47 80 43 85 43 92 C43 98 46 100 50 100 C54 100 57 98 57 92 C57 85 53 80 50 72 Z"/>
         </svg>
-        <div class="word" aria-label="SETLY">
-          <span>S</span><span>E</span><span>T</span><span>L</span><span>Y</span>
+
+        <!-- Wordmark: PUSH–PA with glowing heated barbell bar -->
+        <div class="pushpa-wordmark" id="intro-wordmark">
+          <span class="letter" style="animation-delay: 0.6s;">P</span>
+          <span class="letter" style="animation-delay: 0.8s;">U</span>
+          <span class="letter" style="animation-delay: 1.0s;">S</span>
+          <span class="letter" style="animation-delay: 1.2s;">H</span>
+          <span class="dash-bar"></span>
+          <span class="letter" style="animation-delay: 1.7s;">P</span>
+          <span class="letter" style="animation-delay: 1.9s;">A</span>
         </div>
-        <p class="tag">Lift. Log. Level up.</p>
+
+        <p class="intro-tagline">Train. Track. Burn.</p>
       </div>
+
+      <button type="button" class="skip-intro-btn" id="btn-skip-intro">Tap to Skip</button>
     </div>
 
-    <!-- Main Application Container -->
-    <div id="app">
+    <!-- Sticky Top Navigation Header -->
+    <header class="top-nav">
+      <div class="brand-badge" id="brand-home-link" style="cursor: pointer;">
+        <svg class="header-mini-flame" viewBox="0 0 100 120">
+          <path fill="#FF3D2E" d="M50 15 C45 35 25 50 25 75 C25 95 38 110 50 110 C62 110 75 95 75 75 C75 50 55 35 50 15 Z"/>
+          <path fill="#FF6A00" d="M50 35 C44 50 32 62 32 80 C32 94 40 105 50 105 C60 105 68 94 68 80 C68 62 56 50 50 35 Z"/>
+          <path fill="#FFB020" d="M50 55 C46 68 38 75 38 88 C38 98 44 102 50 102 C56 102 62 98 62 88 C62 75 54 68 50 55 Z"/>
+        </svg>
+        <span style="font-weight: 900; letter-spacing: -0.2px;">PUSH<span style="color: var(--fire);">–</span>PA</span>
+      </div>
+
+      <!-- Mode Switcher Pill -->
+      <div class="mode-switch-pill" id="mode-switch-pill">
+        <button type="button" class="mode-switch-btn active" data-mode="planner">AI Planner</button>
+        <button type="button" class="mode-switch-btn" data-mode="logbook">Logbook</button>
+      </div>
+
+      <div class="top-nav-actions">
+        <!-- Streak Flame -->
+        <span id="streak-badge" class="chip" style="padding: 4px 8px; font-size: 11px; font-weight: 700; color: var(--flame); margin: 0;">
+          🔥 <span class="num" id="streak-count">1</span>W
+        </span>
+        <!-- Sound Mute Toggle -->
+        <button type="button" class="snd-btn" id="snd" aria-label="Toggle Sound">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+            <path id="sw" d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div id="app" style="position: absolute; inset: var(--header-height) 0 0 0;">
 
       <!-- ====================================================================
            AUTH SCREEN
            ==================================================================== -->
       <section class="scr on" id="s-auth" style="z-index: 30;">
-        <div style="padding-top: 30px; text-align: center; margin-bottom: 24px;">
-          <h1 style="font-size: 34px; letter-spacing: -0.5px;">Welcome to SETLY</h1>
-          <p class="sub" style="max-width: 280px; margin: 6px auto 0;">
-            Adaptive, local-first workout planner and progressive overload engine.
+        <div style="padding-top: 24px; text-align: center; margin-bottom: 20px;">
+          <h1 style="font-size: 32px; letter-spacing: -0.5px;">Welcome to PUSHPA</h1>
+          <p class="sub" style="max-width: 280px; margin: 4px auto 0;">
+            Adaptive fitness engine and Notion-style workout logbook.
           </p>
         </div>
 
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <b id="auth-title" style="font-size: 15px;">Log In to Your Plan</b>
+            <b id="auth-title" style="font-size: 15px;">Log In</b>
             <button type="button" id="btn-toggle-auth-mode" class="chip" style="margin-top: 0;">Sign Up</button>
           </div>
 
@@ -70,494 +122,299 @@
             <button type="submit" id="btn-auth-submit" class="cta">Log In</button>
           </form>
 
-          <div style="display: flex; align-items: center; gap: 10px; margin: 18px 0;">
+          <div style="display: flex; align-items: center; gap: 10px; margin: 16px 0;">
             <div style="flex: 1; height: 1px; background: var(--line);"></div>
             <span class="text-muted" style="font-size: 11px; text-transform: uppercase;">or</span>
             <div style="flex: 1; height: 1px; background: var(--line);"></div>
           </div>
 
-          <button type="button" id="btn-guest-login" class="btn-secondary" style="width: 100%; height: 48px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <button type="button" id="btn-guest-login" class="btn-secondary" style="width: 100%; height: 46px;">
             <span>Continue as Guest (Instant Access)</span>
           </button>
         </div>
       </section>
 
       <!-- ====================================================================
-           ONBOARDING WIZARD SCREEN (6 Guided Steps)
+           MODE SELECT SCREEN (Section 4)
            ==================================================================== -->
-      <section class="scr" id="s-onboarding" style="z-index: 29;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span class="chip on" id="ob-step-badge">Step 1 of 6</span>
-          <span class="sub" id="ob-step-name">Program Length</span>
-        </div>
-        <div class="bar" style="margin-bottom: 20px;">
-          <i id="ob-prog-bar" style="width: 16.6%;"></i>
-        </div>
+      <section class="scr" id="s-mode-select" style="z-index: 25;">
+        <h1 style="font-size: 28px;">Choose Your Mode</h1>
+        <p class="sub" style="margin-bottom: 20px;">Switch anytime in the top bar. Data stays separate.</p>
 
-        <!-- Step 1: Program Length Selector -->
-        <div class="ob-step" id="ob-step-1">
-          <h1>How long is your program?</h1>
-          <p class="sub" style="margin-bottom: 16px;">Pick a focused block or enter a custom duration.</p>
-
-          <div class="chip-grid" style="grid-template-columns: 1fr; gap: 10px;" id="ob-program-cards">
-            <div class="chip-option" data-len="30">
-              <span class="chip-option-title">30 Days (Quick Start)</span>
-              <span class="chip-option-sub">4 weeks • ~16 sessions • Ideal for a habit reset.</span>
-            </div>
-            <div class="chip-option selected" data-len="60">
-              <span class="chip-option-title">60 Days (Solid Block)</span>
-              <span class="chip-option-sub">8 weeks • ~32 sessions • Complete periodized mesocycle.</span>
-            </div>
-            <div class="chip-option" data-len="90">
-              <span class="chip-option-title">90 Days (Full Transformation)</span>
-              <span class="chip-option-sub">12 weeks • ~48 sessions • Foundation, Build & Peak phases.</span>
-            </div>
-            <div class="chip-option" data-len="180">
-              <span class="chip-option-title">180 Days (Long Game)</span>
-              <span class="chip-option-sub">26 weeks • ~100 sessions • Progressive overload master block.</span>
-            </div>
-            <div class="chip-option" data-len="360">
-              <span class="chip-option-title">360 Days (Full Year)</span>
-              <span class="chip-option-sub">52 weeks • Full annual athletic journey with deloads.</span>
-            </div>
-            <div class="chip-option" data-len="custom">
-              <span class="chip-option-title">Custom Duration</span>
-              <input type="number" id="ob-custom-days" class="form-input num" placeholder="Enter days (14–365)" min="14" max="365" style="height: 38px; margin-top: 6px; text-align: center;">
-            </div>
-          </div>
+        <!-- Card 1: AI Planner -->
+        <div class="mode-card" id="mode-card-planner">
+          <span class="mode-card-tag">⚡ Automated Program</span>
+          <h2 class="mode-card-title">AI Planner</h2>
+          <p class="mode-card-desc">
+            Get a tailored rolling plan built for you. Adapts weekly with double progression and full day maps.
+          </p>
         </div>
 
-        <!-- Step 2: Goal -->
-        <div class="ob-step hidden" id="ob-step-2">
-          <h1>What's your main goal?</h1>
-          <p class="sub" style="margin-bottom: 16px;">We tailor rep targets, density, and progression curves.</p>
-          <div class="chip-grid" style="grid-template-columns: 1fr; gap: 10px;">
-            <div class="chip-option selected" data-goal="muscle">
-              <span class="chip-option-title">Build Muscle (Hypertrophy)</span>
-              <span class="chip-option-sub">8–12 reps, optimal mechanical tension, balanced isolation.</span>
-            </div>
-            <div class="chip-option" data-goal="strength">
-              <span class="chip-option-title">Max Strength (Power)</span>
-              <span class="chip-option-sub">4–6 reps, heavy compound focus, longer rest intervals.</span>
-            </div>
-            <div class="chip-option" data-goal="fat_loss">
-              <span class="chip-option-title">Fat Loss & Conditioning</span>
-              <span class="chip-option-sub">10–15 reps, high training density, short rest periods.</span>
-            </div>
-            <div class="chip-option" data-goal="fitness">
-              <span class="chip-option-title">General Health & Longevity</span>
-              <span class="chip-option-sub">Functional movement patterns, joint integrity, endurance.</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 3: Vitals -->
-        <div class="ob-step hidden" id="ob-step-3">
-          <h1>Your Baseline Vitals</h1>
-          <p class="sub" style="margin-bottom: 16px;">Used to estimate starting working weights and 1RM standards.</p>
-
-          <div class="form-group">
-            <label class="form-label">Biological Sex</label>
-            <div class="seg" id="ob-sex-seg" style="width: 100%; display: grid; grid-template-columns: repeat(3, 1fr);">
-              <button class="on" data-sex="male">Male</button>
-              <button data-sex="female">Female</button>
-              <button data-sex="other">Neutral</button>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-              <label class="form-label" for="ob-age">Age</label>
-              <input type="number" id="ob-age" class="form-input num" placeholder="e.g. 23" min="14" max="99">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Experience</label>
-              <div class="chip-option selected" id="ob-exp-toggle" style="padding: 11px 6px;">
-                <span class="chip-option-title" id="ob-exp-text">Intermediate</span>
-              </div>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <label class="form-label" style="margin: 0;">Height</label>
-                <button type="button" id="ob-toggle-h-unit" class="text-ac" style="font-size: 11px; font-weight: 700;">CM</button>
-              </div>
-              <input type="number" id="ob-height" class="form-input num" placeholder="e.g. 178">
-            </div>
-            <div class="form-group">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <label class="form-label" style="margin: 0;">Weight</label>
-                <button type="button" id="ob-toggle-w-unit" class="text-ac" style="font-size: 11px; font-weight: 700;">KG</button>
-              </div>
-              <input type="number" id="ob-weight" class="form-input num" placeholder="e.g. 75">
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 4: Schedule -->
-        <div class="ob-step hidden" id="ob-step-4">
-          <h1>Training Schedule</h1>
-          <p class="sub" style="margin-bottom: 16px;">How many days per week can you lift consistently?</p>
-          <div class="form-group">
-            <label class="form-label">Days Per Week</label>
-            <div class="grid" style="grid-template-columns: repeat(5, 1fr);" id="ob-days-selector">
-              <button class="dc" data-days="2">2</button>
-              <button class="dc" data-days="3">3</button>
-              <button class="dc done" data-days="4">4</button>
-              <button class="dc" data-days="5">5</button>
-              <button class="dc" data-days="6">6</button>
-            </div>
-          </div>
-          <div class="form-group" style="margin-top: 20px;">
-            <label class="form-label">Target Session Duration</label>
-            <div class="chips" id="ob-duration-chips">
-              <span class="chip" data-time="35">35 min (Express)</span>
-              <span class="chip on" data-time="50">50 min (Standard)</span>
-              <span class="chip" data-time="65">65 min (Extended)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 5: Equipment Presets -->
-        <div class="ob-step hidden" id="ob-step-5">
-          <h1>Available Equipment</h1>
-          <p class="sub" style="margin-bottom: 16px;">We prescribe exercises matching your available gym gear.</p>
-          <div class="chips" id="ob-equip-presets" style="margin-bottom: 12px;">
-            <span class="chip on" data-preset="full_gym">Full Gym</span>
-            <span class="chip" data-preset="home_db">Home Dumbbells</span>
-            <span class="chip" data-preset="bodyweight">Bodyweight Only</span>
-            <span class="chip" data-preset="custom">Custom</span>
-          </div>
-
-          <div class="card" id="ob-equip-checklist" style="padding: 10px 16px;">
-            <div class="toggle-row" data-equip="barbell"><span>Olympic Barbell & Plates</span><div class="custom-checkbox checked">✓</div></div>
-            <div class="toggle-row" data-equip="dumbbells"><span>Dumbbells</span><div class="custom-checkbox checked">✓</div></div>
-            <div class="toggle-row" data-equip="cables"><span>Cable Station & Pulleys</span><div class="custom-checkbox checked">✓</div></div>
-            <div class="toggle-row" data-equip="machine"><span>Machines (Leg Press, Lat Pulldown)</span><div class="custom-checkbox checked">✓</div></div>
-            <div class="toggle-row" data-equip="bodyweight" style="border: 0;"><span>Pull-up Bar & Bodyweight</span><div class="custom-checkbox checked">✓</div></div>
-          </div>
-        </div>
-
-        <!-- Step 6: Limitations & Focus Muscles -->
-        <div class="ob-step hidden" id="ob-step-6">
-          <h1>Joint Integrity & Focus</h1>
-          <p class="sub" style="margin-bottom: 16px;">Select joints to protect and optional target focus muscles.</p>
-
-          <label class="form-label">Joints to Protect</label>
-          <div class="card" style="padding: 10px 16px; margin-top: 6px; margin-bottom: 16px;">
-            <div class="toggle-row" data-limit="knees"><span>Sensitive Knees (Protect patellar torque)</span><div class="custom-checkbox"></div></div>
-            <div class="toggle-row" data-limit="lower_back"><span>Lower Back (Avoid heavy axial loading)</span><div class="custom-checkbox"></div></div>
-            <div class="toggle-row" data-limit="shoulders"><span>Shoulder Impingement</span><div class="custom-checkbox"></div></div>
-            <div class="toggle-row" data-limit="wrists" style="border: 0;"><span>Sensitive Wrists</span><div class="custom-checkbox"></div></div>
-          </div>
-        </div>
-
-        <!-- Wizard Navigation -->
-        <div style="display: flex; gap: 10px; margin-top: 24px; margin-bottom: 30px;">
-          <button type="button" id="btn-ob-prev" class="btn-secondary hidden" style="flex: 1;">Back</button>
-          <button type="button" id="btn-ob-next" class="cta" style="flex: 2; margin-top: 0;">Continue</button>
+        <!-- Card 2: Logbook -->
+        <div class="mode-card" id="mode-card-logbook">
+          <span class="mode-card-tag">📝 Free Space & Journal</span>
+          <h2 class="mode-card-title">Logbook</h2>
+          <p class="mode-card-desc">
+            A free Notion-style space. Write your own sessions, view "Last time" auto-comparisons, and track consistency.
+          </p>
         </div>
       </section>
 
       <!-- ====================================================================
-           TAB 1: TODAY
+           MODE 1: AI PLANNER SCREENS
            ==================================================================== -->
-      <section class="scr" id="s-today">
-        <p class="sub" id="today-day-counter">Day 1 of 60</p>
-        <h1 id="today-session-name">Push A</h1>
+      <div id="mode-planner-views">
+        
+        <!-- Tab 1: AI Planner Today -->
+        <section class="scr" id="s-today">
+          <p class="sub" id="today-day-counter">Day 1 of 60</p>
+          <h1 id="today-session-name" style="font-size: 28px;">Push A</h1>
 
-        <!-- Mobile App & APK Banner for Friends -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(198,255,61,0.12) 0%, var(--s1) 100%); border: 1px solid rgba(198,255,61,0.3); padding: 12px 16px; margin-top: 10px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="font-size: 13px; color: var(--ac); display: flex; align-items: center; gap: 6px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-              Install on Your Phone
-            </b>
-            <span class="chip on" style="font-size: 10px; padding: 2px 8px;">Android & iPhone</span>
+          <!-- Guided Home Workout Quick Banner -->
+          <div class="card" style="background: linear-gradient(135deg, rgba(255,106,0,0.14) 0%, var(--s1) 100%); border: 1px solid rgba(255,106,0,0.35); padding: 12px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <b style="color: var(--fire); font-size: 14px;">Guided Home Workout</b>
+                <small style="display: block; color: var(--dim);">No gear needed • 2D Low-poly trainer</small>
+              </div>
+              <button type="button" id="btn-start-guided-home" class="cta" style="margin: 0; padding: 8px 14px; font-size: 11px; width: auto;">
+                Start Guided
+              </button>
+            </div>
           </div>
-          <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button type="button" id="btn-banner-android" class="cta" style="margin: 0; padding: 8px 10px; font-size: 11px; flex: 1;">
-              Android (APK / Install)
-            </button>
-            <button type="button" id="btn-banner-ios" class="btn-secondary" style="height: 36px; padding: 0 10px; font-size: 11px; flex: 1;">
-              iPhone (Add to Home)
-            </button>
-          </div>
-        </div>
 
-        <!-- Hero Card with Body Map & Interactive Muscle Selector -->
-        <div class="card hero">
-          <div class="bodywrap">
-            <svg id="body" viewBox="0 0 120 220" aria-label="Anatomical Body Map"></svg>
-            <div style="flex: 1;">
+          <!-- Hero Session Card -->
+          <div class="card hero">
+            <div class="chips" id="today-chips-row" style="margin-top: 0;">
+              <span class="chip on" id="today-chip-primary">Chest</span>
+              <span class="chip" id="today-chip-time">About 48 min</span>
+              <span class="chip" id="today-chip-phase">Phase: Foundation</span>
+            </div>
+
+            <!-- Simplified Clean Lineup List -->
+            <div style="margin-top: 14px;" id="lineup"></div>
+
+            <button type="button" class="cta" id="btn-start-today-workout" style="margin-top: 16px;">
+              <span>Start Gym Workout</span>
+            </button>
+          </div>
+
+          <!-- Body Map Behind a Card -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <b style="font-size: 14px;">Anatomical Muscle Target</b>
               <div class="seg" id="gseg">
                 <button class="on" data-g="m">Male</button>
                 <button data-g="f">Female</button>
               </div>
-              <h3 id="mn" style="font-size: 17px; margin-top: 2px;">Tap a muscle</h3>
-              <p class="sub" id="mi" style="font-size: 12px; line-height: 1.4;">See your weekly sets & best exercises.</p>
-              <button type="button" id="btn-prioritize-muscle" class="chip" style="margin-top: 8px; display: none;">+ Prioritize Volume</button>
+            </div>
+            <div class="bodywrap" style="margin-top: 8px;">
+              <svg id="body" viewBox="0 0 120 220" aria-label="Body Map"></svg>
+              <div style="flex: 1;">
+                <h3 id="mn" style="font-size: 16px;">Tap a muscle</h3>
+                <p class="sub" id="mi" style="font-size: 12px; line-height: 1.4;">See weekly volume and form cues.</p>
+                <button type="button" id="btn-prioritize-muscle" class="chip" style="margin-top: 8px; display: none;">+ Prioritize Volume</button>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div class="chips" id="today-chips-row">
-            <span class="chip on" id="today-chip-primary">Chest</span>
-            <span class="chip" id="today-chip-time">About 48 min</span>
-            <span class="chip" id="today-chip-phase">Phase: Foundation</span>
+        <!-- Tab 2: AI Planner Plan -->
+        <section class="scr" id="s-plan">
+          <h1>Your Plan</h1>
+          <p class="sub">Choose a duration. Days unlock in sequence.</p>
+
+          <div class="chips" id="lens"></div>
+
+          <!-- Sticky Mini Progress -->
+          <div class="card" style="padding: 14px 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <b id="pl" style="font-size: 15px;">Day 1 of 60</b>
+              <span class="num text-fire font-bold" id="pp" style="color: var(--fire);">2%</span>
+            </div>
+            <div class="bar"><i id="pbar"></i></div>
           </div>
 
-          <button class="cta" id="btn-start-today-workout" data-snd="go">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Start workout</span>
-          </button>
-        </div>
+          <!-- Up Next Section -->
+          <div id="plan-up-next-section"></div>
 
-        <!-- Today's Readiness Check -->
-        <div class="card" style="padding: 14px 18px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="font-size: 14px;">Today's Readiness</b>
-            <span class="sub" id="readiness-summary-badge" style="font-size: 12px; color: var(--ac); font-weight: 600;">100% Ready</span>
+          <!-- 5-Column Grid -->
+          <div style="margin-top: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="form-label" style="margin: 0;">Full Program Grid</span>
+              <span class="sub" style="font-size: 11px;">5 days / row</span>
+            </div>
+            <div class="grid" id="days"></div>
           </div>
-          <div class="chips" id="readiness-chips-row" style="margin-top: 8px;">
-            <span class="chip on" data-readiness="rested">😴 Rested</span>
-            <span class="chip on" data-readiness="fresh">⚡ Fresh Muscles</span>
-            <span class="chip on" data-readiness="energized">🔥 High Energy</span>
-          </div>
-        </div>
+        </section>
 
-        <!-- Exercise Lineup Preview -->
-        <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="font-size: 17px;">Today's lineup</h3>
-            <span class="sub" id="today-lineup-count">4 exercises</span>
-          </div>
-          <div style="margin-top: 8px;" id="lineup">
-            <!-- Dynamic exercise rows rendered via JS -->
-          </div>
-        </div>
-      </section>
+        <!-- Tab 3: AI Planner Progress -->
+        <section class="scr" id="s-prog">
+          <h1>Progress</h1>
+          <p class="sub">Your strength and volume are trending up.</p>
 
-      <!-- ====================================================================
-           TAB 2: PLAN (FULL-LENGTH DAY MAP)
-           ==================================================================== -->
-      <section class="scr" id="s-plan">
-        <h1>Your plan</h1>
-        <p class="sub">Choose a length. Finish a day to unlock the next.</p>
-
-        <!-- Program length selector chips -->
-        <div class="chips" id="lens"></div>
-
-        <!-- Sticky Mini Progress Header -->
-        <div class="card" style="padding: 14px 18px;">
-          <div style="display: flex; justify-content: space-between; align-items: baseline;">
-            <b id="pl" style="font-size: 15px;">Day 1 of 60</b>
-            <span class="sub num font-bold text-ac" id="pp" style="font-size: 14px;">2%</span>
-          </div>
-          <div class="bar"><i id="pbar"></i></div>
-        </div>
-
-        <!-- Up Next Detailed Cards -->
-        <div id="plan-up-next-section" style="margin-top: 14px;">
-          <!-- Dynamically inserted: Up next day & tomorrow day cards -->
-        </div>
-
-        <!-- 5-Column Grid of Day Circles -->
-        <div style="margin-top: 18px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span class="form-label" style="margin: 0;">Full Program Map</span>
-            <span class="sub" style="font-size: 11px;">5 days / row</span>
-          </div>
-          <div class="grid" id="days"></div>
-        </div>
-      </section>
-
-      <!-- ====================================================================
-           TAB 3: PROGRESS
-           ==================================================================== -->
-      <section class="scr" id="s-prog">
-        <h1>Progress</h1>
-        <p class="sub">Your strength and consistency are trending up.</p>
-
-        <!-- Circular Completion Ring & Weekly Sessions Count -->
-        <div class="card" style="display: flex; gap: 18px; align-items: center;">
-          <svg class="ring" viewBox="0 0 96 96">
-            <circle class="bg" cx="48" cy="48" r="42"/>
-            <circle class="fg" id="rfg" cx="48" cy="48" r="42"/>
-          </svg>
-          <div>
-            <div class="num" style="font-size: 34px;"><span id="c1" data-to="4">0</span>/<span id="c1-target">4</span></div>
-            <div class="sub">sessions done this week</div>
-          </div>
-        </div>
-
-        <!-- Target Zone Volume Bars per Muscle -->
-        <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: baseline;">
-            <h3 style="font-size: 17px;">Sets per muscle</h3>
-            <span class="sub" style="font-size: 11px;">Target: 10–20 weekly sets</span>
-          </div>
-          <div id="mus"></div>
-        </div>
-
-        <!-- e1RM Strength Progression Line Chart -->
-        <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: baseline;">
-            <h3 style="font-size: 17px;" id="prog-chart-lift-title">Bench press estimated 1RM</h3>
-            <span class="sub num text-ac font-bold" id="prog-e1rm-stat">88.7 kg</span>
-          </div>
-          <svg class="spark" viewBox="0 0 300 70" preserveAspectRatio="none">
-            <path d="M4 62 C40 58 60 52 90 50 S140 44 170 36 S230 24 296 8"/>
-          </svg>
-          <p class="sub" id="prog-e1rm-sentence" style="font-size: 13px;">Up 7.5 kg over your past training cycle. Solid progressive overload.</p>
-        </div>
-
-        <!-- Body Weight Trend -->
-        <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: baseline;">
-            <h3 style="font-size: 17px;">Body Weight Trend</h3>
-            <button type="button" id="btn-prog-log-weight" class="text-ac" style="font-size: 12px; font-weight: 700;">+ Log Today</button>
-          </div>
-          <div style="font-size: 24px; font-weight: 800; margin: 4px 0;" class="num" id="prog-bw-current">75.4 kg</div>
-          <svg class="spark" id="svg-bw-spark" viewBox="0 0 300 60" preserveAspectRatio="none">
-            <path d="M4 35 C50 36 100 32 150 30 S220 25 296 22"/>
-          </svg>
-        </div>
-
-        <!-- Weekly Coach Note Banner -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(198,255,61,0.08) 0%, var(--s1) 100%); border-color: rgba(198,255,61,0.25);">
-          <b style="font-size: 14px; color: var(--ac);">Coach Note</b>
-          <p class="sub" id="coach-note-body" style="color: var(--tx); margin-top: 4px; line-height: 1.45;">
-            Volume is well distributed across your push and pull patterns. Recovery score is optimal. Keep hitting your prescribed target reps!
-          </p>
-        </div>
-
-        <!-- Achievements / Badges Rack -->
-        <div class="card">
-          <h3 style="font-size: 17px; margin-bottom: 10px;">Achievements</h3>
-          <div class="chips" id="badges-rack">
-            <span class="chip on">🏆 First Workout</span>
-            <span class="chip on">🔥 7-Day Streak</span>
-            <span class="chip on">⚡ First PR</span>
-            <span class="chip">🎯 10 Sessions</span>
-            <span class="chip">💯 100 Sets Club</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- ====================================================================
-           TAB 4: PROFILE & SETTINGS
-           ==================================================================== -->
-      <section class="scr" id="s-profile">
-        <h1>Profile & Settings</h1>
-        <p class="sub">Personal vitals, theme preferences, and data backups.</p>
-
-        <!-- Athlete Header Card -->
-        <div class="card" style="display: flex; align-items: center; gap: 14px;">
-          <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--s2); border: 2px solid var(--ac); display: grid; place-items: center; font-weight: 800; font-size: 20px; color: var(--ac);" id="profile-avatar">
-            S
-          </div>
-          <div style="flex: 1;">
-            <b id="profile-name" style="font-size: 17px;">Athlete</b>
-            <span class="sub" id="profile-sub" style="display: block;">Intermediate • Hypertrophy</span>
-          </div>
-          <button type="button" id="btn-edit-vitals" class="chip">Edit</button>
-        </div>
-
-        <!-- Program Configuration Quick Action -->
-        <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="card" style="display: flex; gap: 16px; align-items: center;">
+            <svg class="ring" viewBox="0 0 96 96">
+              <circle class="bg" cx="48" cy="48" r="42"/>
+              <circle class="fg" id="rfg" cx="48" cy="48" r="42" stroke="var(--fire)"/>
+            </svg>
             <div>
-              <b>Program Length</b>
-              <small id="profile-program-summary">60 Days (Solid Block)</small>
+              <div class="num" style="font-size: 32px;"><span id="c1" data-to="4">0</span>/<span id="c1-target">4</span></div>
+              <div class="sub">planned sessions done this week</div>
             </div>
-            <button type="button" id="btn-change-program-length" class="chip on">Change</button>
           </div>
-        </div>
 
-        <!-- Theme & Accent Options -->
-        <div class="card">
-          <b>Appearance & Accent</b>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-            <span class="sub">Theme Mode</span>
-            <div class="seg" id="theme-mode-seg">
-              <button class="on" data-theme="dark">Dark</button>
-              <button data-theme="light">Light</button>
-            </div>
+          <!-- Volume Bars -->
+          <div class="card">
+            <h3 style="font-size: 16px; margin-bottom: 4px;">Sets per muscle</h3>
+            <span class="sub" style="font-size: 11px;">Target: 10–20 weekly sets</span>
+            <div id="mus" style="margin-top: 8px;"></div>
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-            <span class="sub">Hero Accent Color</span>
-            <div style="display: flex; gap: 8px;">
-              <div class="theme-dot" data-col="#C6FF3D" style="width: 24px; height: 24px; border-radius: 50%; background: #C6FF3D; border: 2px solid #fff; cursor: pointer;"></div>
-              <div class="theme-dot" data-col="#38BDF8" style="width: 24px; height: 24px; border-radius: 50%; background: #38BDF8; border: 2px solid transparent; cursor: pointer;"></div>
-              <div class="theme-dot" data-col="#FB923C" style="width: 24px; height: 24px; border-radius: 50%; background: #FB923C; border: 2px solid transparent; cursor: pointer;"></div>
-              <div class="theme-dot" data-col="#FFFFFF" style="width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; border: 2px solid transparent; cursor: pointer;"></div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Install SETLY PWA Helper -->
-        <div class="card" id="card-pwa-install">
-          <b>Install SETLY on Your Device</b>
-          <p class="sub" style="margin-top: 4px;">Run fullscreen and offline just like a native app.</p>
-          <button type="button" id="btn-install-pwa" class="cta" style="margin-top: 10px; padding: 12px;">
-            <span>Install App</span>
+          <!-- e1RM Line Chart -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <h3 style="font-size: 16px;">Estimated 1RM Strength</h3>
+              <span class="num font-bold" style="color: var(--fire);">88.7 kg</span>
+            </div>
+            <svg class="spark" viewBox="0 0 300 70" preserveAspectRatio="none">
+              <path stroke="var(--fire)" d="M4 62 C40 58 60 52 90 50 S140 44 170 36 S230 24 296 8"/>
+            </svg>
+            <p class="sub" style="font-size: 12px;">Up 7.5 kg over last cycle. Progressive overload active.</p>
+          </div>
+        </section>
+
+        <!-- Tab 4: Profile & Settings -->
+        <section class="scr" id="s-profile">
+          <h1>Settings & Backup</h1>
+          <p class="sub">Vitals, theme, and local backups.</p>
+
+          <div class="card" style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--s2); border: 2px solid var(--fire); display: grid; place-items: center; font-weight: 800; font-size: 18px; color: var(--fire);" id="profile-avatar">
+              P
+            </div>
+            <div style="flex: 1;">
+              <b id="profile-name" style="font-size: 17px;">Athlete</b>
+              <span class="sub" id="profile-sub" style="display: block;">Intermediate • Hypertrophy</span>
+            </div>
+          </div>
+
+          <!-- Backup & Restore Section (Section 8) -->
+          <div class="card">
+            <b>Local Backup & Restore</b>
+            <p class="sub" style="margin-top: 4px;">
+              Data stays in your phone's storage. Back up weekly to save your logs.
+            </p>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+              <button type="button" id="btn-export-backup" class="cta" style="flex: 1; margin: 0; padding: 10px; font-size: 12px;">
+                Export Backup (.JSON)
+              </button>
+              <button type="button" id="btn-trigger-import" class="btn-secondary" style="flex: 1; height: 42px; font-size: 12px;">
+                Restore Backup
+              </button>
+              <input type="file" id="input-import-file" accept=".json" style="display: none;">
+            </div>
+          </div>
+
+          <div class="card">
+            <button type="button" id="btn-logout" class="btn-secondary" style="width: 100%; height: 44px; color: var(--hard);">
+              Log Out
+            </button>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ====================================================================
+           MODE 2: LOGBOOK SCREENS (Section 5)
+           ==================================================================== -->
+      <div id="mode-logbook-views" class="hidden">
+        
+        <!-- Logbook Today Screen -->
+        <section class="scr" id="s-logbook-today">
+          <div class="logbook-header">
+            <div class="logbook-date-row">
+              <span class="sub" id="log-date-label">Today • Monday</span>
+              <button type="button" id="btn-open-log-setup" class="chip" style="margin: 0;">Edit Layout</button>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+              <div class="logbook-session-badge" id="btn-change-log-session">
+                <span id="log-suggested-session-name">Push</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <button type="button" id="btn-log-rest-today" class="btn-secondary" style="height: 32px; padding: 0 10px; font-size: 11px;">
+                Rest Today
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Exercise Notion Blocks -->
+          <div id="log-exercise-blocks-container"></div>
+
+          <!-- Add Exercise Block -->
+          <div style="position: relative; margin-top: 12px;">
+            <input type="text" id="input-add-exercise-name" class="form-input" placeholder="+ Add exercise by name (e.g. Incline Bench)..." style="height: 44px;">
+            <div id="log-autocomplete-dropdown" class="autocomplete-list hidden"></div>
+          </div>
+
+          <button type="button" class="cta" id="btn-finish-logbook-session" style="margin-top: 16px;">
+            <span>Finish Session & Save</span>
           </button>
-          <div id="ios-pwa-guide" class="warn hidden" style="margin-top: 10px;">
-            <span>iPhone Safari: Tap <b>Share</b> then select <b>Add to Home Screen</b>.</span>
+        </section>
+
+        <!-- Logbook Reports Screen -->
+        <section class="scr" id="s-logbook-reports">
+          <h1>Logbook Reports</h1>
+          <p class="sub" id="log-report-summary">Loading consistency report...</p>
+
+          <!-- Consistency Metric Grid -->
+          <div class="card" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
+            <div>
+              <span class="sub" style="font-size: 11px;">Consistency</span>
+              <div class="num font-bold" id="log-stat-consistency" style="font-size: 20px; color: var(--fire); margin-top: 2px;">100%</div>
+            </div>
+            <div>
+              <span class="sub" style="font-size: 11px;">Streak</span>
+              <div class="num font-bold" id="log-stat-streak" style="font-size: 20px; color: var(--flame); margin-top: 2px;">1 Wk</div>
+            </div>
+            <div>
+              <span class="sub" style="font-size: 11px;">Missed</span>
+              <div class="num font-bold" id="log-stat-missed" style="font-size: 20px; color: var(--dim); margin-top: 2px;">0</div>
+            </div>
           </div>
-        </div>
 
-        <!-- Data Export & Backups -->
-        <div class="card">
-          <b>Data & Offline Backups</b>
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-            <button type="button" id="btn-export-json" class="btn-secondary" style="justify-content: flex-start; height: 42px;">
-              <span>Export State Backup (.JSON)</span>
-            </button>
-            <button type="button" id="btn-export-csv" class="btn-secondary" style="justify-content: flex-start; height: 42px;">
-              <span>Export Workout History (.CSV)</span>
-            </button>
-            <button type="button" id="btn-reset-all" class="btn-secondary text-hard" style="justify-content: flex-start; height: 42px;">
-              <span>Reset All Data & Start Fresh</span>
-            </button>
+          <!-- History Timeline -->
+          <div class="card">
+            <h3 style="font-size: 16px; margin-bottom: 10px;">Session History</h3>
+            <div id="log-history-timeline"></div>
           </div>
-        </div>
+        </section>
 
-        <div style="margin-top: 14px; margin-bottom: 24px;">
-          <button type="button" id="btn-logout" class="btn-secondary" style="width: 100%; height: 46px;">
-            <span>Log Out</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- 4-Tab Bottom Navigation Bar -->
-      <nav id="tabs">
-        <button class="on" data-t="today">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          <span>Today</span>
-        </button>
-        <button data-t="plan">
-          <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
-          <span>Plan</span>
-        </button>
-        <button data-t="prog">
-          <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
-          <span>Progress</span>
-        </button>
-        <button data-t="profile">
-          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span>Profile</span>
-        </button>
-      </nav>
+      </div>
 
     </div>
 
-    <!-- ====================================================================
-         BOTTOM SHEET & BACKDROP SHADE
-         ==================================================================== -->
+    <!-- 4-Tab Bottom Navigation Bar -->
+    <nav id="tabs">
+      <button class="on" data-t="today">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>Today</span>
+      </button>
+      <button data-t="plan">
+        <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+        <span>Plan</span>
+      </button>
+      <button data-t="prog">
+        <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+        <span>Progress</span>
+      </button>
+      <button data-t="profile">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </button>
+    </nav>
+
+    <!-- Bottom Sheet Shade & Panel -->
     <div id="shade"></div>
     <div id="sheet">
       <div class="grab"></div>
@@ -565,116 +422,75 @@
     </div>
 
     <!-- ====================================================================
-         FULLSCREEN LIVE WORKOUT SCREEN
+         GUIDED WORKOUT PLAYER SCREEN (Section 7)
          ==================================================================== -->
+    <div id="guided-player-screen">
+      <!-- 2D Low-Poly Character Stage -->
+      <div class="guided-stage">
+        <svg class="skeleton-svg" id="guided-skeleton" viewBox="0 0 200 200">
+          <!-- Floor line -->
+          <line x1="20" y1="180" x2="180" y2="180" stroke="var(--fire)" stroke-width="2" opacity="0.6"/>
+          
+          <!-- Head -->
+          <polygon id="poly-head" points="95,45 105,45 108,60 92,60" fill="#FFF4EA"/>
+          <!-- Torso / Chest -->
+          <polygon id="poly-chest" class="muscle-highlight-poly" points="85,60 115,60 110,95 90,95"/>
+          <!-- Abs / Core -->
+          <polygon id="poly-core" class="muscle-highlight-poly" points="90,95 110,95 105,120 95,120"/>
+          
+          <!-- Limbs (Low-Poly Segments) -->
+          <!-- Upper Arms & Forearms -->
+          <polygon id="poly-arm-l" class="muscle-highlight-poly" points="85,62 75,88 80,90 89,65"/>
+          <polygon id="poly-arm-r" class="muscle-highlight-poly" points="115,62 125,88 120,90 111,65"/>
+          <!-- Quads / Thighs -->
+          <polygon id="poly-quad-l" class="muscle-highlight-poly" points="93,120 86,150 92,152 98,122"/>
+          <polygon id="poly-quad-r" class="muscle-highlight-poly" points="107,120 114,150 108,152 102,122"/>
+          <!-- Calves / Lower Legs -->
+          <polygon id="poly-calf-l" class="muscle-highlight-poly" points="87,152 88,180 94,180 93,152"/>
+          <polygon id="poly-calf-r" class="muscle-highlight-poly" points="113,152 112,180 106,180 107,152"/>
+        </svg>
+
+        <div class="stage-floor-line"></div>
+      </div>
+
+      <!-- Guided HUD Controls -->
+      <div class="guided-hud">
+        <div>
+          <div class="guided-metrics-bar">
+            <span class="sub" id="guided-progress-label">Move 1 of 12</span>
+            <span class="chip on" id="guided-calories-label" style="font-size: 11px;">~0 kcal</span>
+          </div>
+          <h2 class="guided-exercise-name" id="guided-move-name">Push-Ups</h2>
+          <div class="chips" id="guided-move-chips">
+            <span class="chip">Chest</span>
+            <span class="chip">Triceps</span>
+          </div>
+          <div class="guided-target-large num" id="guided-target-disp">12 reps</div>
+          <p class="sub" id="guided-cue-disp" style="text-align: center;">Elbows at 45 degrees, chest near floor.</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+          <button type="button" id="btn-guided-skip" class="btn-secondary" style="flex: 1; height: 50px;">Skip</button>
+          <button type="button" id="btn-guided-done" class="cta" style="flex: 2; height: 50px; margin: 0; font-size: 16px;">
+            DONE ✓
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Gym Workout Screen -->
     <div id="live-workout-screen">
-      <header class="live-header">
-        <button type="button" id="btn-minimize-workout" class="btn-icon">
-          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-
-        <div class="live-timer-container">
-          <div class="live-timer-dot"></div>
-          <span class="num font-bold" id="live-elapsed-time">00:00</span>
-        </div>
-
-        <button type="button" id="btn-finish-workout" class="cta" style="margin: 0; width: auto; height: 36px; padding: 0 16px; font-size: 13px;">
-          <span>Finish</span>
-        </button>
+      <header class="top-nav" style="background: var(--s1);">
+        <button type="button" id="btn-minimize-workout" class="snd-btn"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <span class="num font-bold" id="live-elapsed-time" style="font-size: 16px;">00:00</span>
+        <button type="button" id="btn-finish-workout" class="cta" style="width: auto; height: 36px; padding: 0 16px; margin: 0; font-size: 12px;">Finish</button>
       </header>
-
-      <div class="live-body" id="live-workout-body"></div>
-
-      <!-- Docked Rest Timer Bottom Bar -->
-      <div id="rest-timer-bar">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <svg class="ring" style="width: 40px; height: 40px;" viewBox="0 0 96 96">
-            <circle class="bg" cx="48" cy="48" r="42"/>
-            <circle class="fg" id="rest-ring-fg" cx="48" cy="48" r="42"/>
-          </svg>
-          <div>
-            <span class="sub" style="font-size: 11px; text-transform: uppercase;">Resting</span>
-            <div class="num font-bold" id="rest-time-display" style="font-size: 18px;">01:30</div>
-          </div>
-        </div>
-        <div style="display: flex; gap: 6px;">
-          <button type="button" id="btn-timer-add-30" class="btn-secondary" style="height: 36px; padding: 0 10px; font-size: 12px;">+30s</button>
-          <button type="button" id="btn-timer-skip" class="btn-secondary" style="height: 36px; padding: 0 10px; font-size: 12px;">Skip</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sub-Modals -->
-    <!-- Plate Calculator Modal -->
-    <div id="modal-plate-calc" class="modal-backdrop">
-      <div class="modal-sheet">
-        <div class="grab"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 style="font-size: 18px;">Plate Calculator</h3>
-          <button type="button" class="btn-icon btn-close-modal"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-        </div>
-        <div style="text-align: center; margin-top: 10px;">
-          <div class="sub" style="font-size: 11px; text-transform: uppercase;">Working Weight (20kg bar included)</div>
-          <div style="font-size: 32px; font-weight: 800; color: var(--ac);" class="num" id="plate-target-weight">80.0 kg</div>
-        </div>
-        <div class="barbell-visual">
-          <div class="bar-shaft">
-            <div id="plate-visual-slots" style="display: flex; gap: 4px; align-items: center;"></div>
-          </div>
-        </div>
-        <div id="plate-breakdown-list" class="card" style="padding: 12px 16px;"></div>
-        <button type="button" class="btn-secondary btn-close-modal" style="width: 100%; height: 44px; margin-top: 12px;">Close</button>
-      </div>
-    </div>
-
-    <!-- Warmup Ladder Modal -->
-    <div id="modal-warmup-ladder" class="modal-backdrop">
-      <div class="modal-sheet">
-        <div class="grab"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 style="font-size: 18px;">Warmup Ladder</h3>
-          <button type="button" class="btn-icon btn-close-modal"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-        </div>
-        <p class="sub" style="margin-bottom: 14px;">Prepares joints and nervous system for working weight.</p>
-        <div id="warmup-ladder-container" class="card" style="padding: 10px 16px;"></div>
-        <button type="button" class="btn-secondary btn-close-modal" style="width: 100%; height: 44px; margin-top: 12px;">Done</button>
-      </div>
-    </div>
-
-    <!-- Celebration & Share Card Modal -->
-    <div id="modal-workout-complete" class="modal-backdrop">
-      <div class="modal-sheet" style="text-align: center;">
-        <div class="grab"></div>
-        <div style="font-size: 34px; margin-bottom: 4px;">🔥</div>
-        <h2 style="font-size: 26px; font-weight: 800;">Session Crushed!</h2>
-        <p class="sub" id="celebrate-summary-text" style="margin-bottom: 16px;">Completed workout with total volume lifted.</p>
-        <canvas id="share-card-canvas" width="400" height="400" style="width: 100%; border-radius: 16px; border: 1px solid var(--line);"></canvas>
-        <div style="display: flex; gap: 10px; margin-top: 14px;">
-          <button type="button" id="btn-download-share-card" class="btn-secondary" style="flex: 1; height: 46px;">Save Image</button>
-          <button type="button" id="btn-close-celebration" class="cta" style="flex: 1; height: 46px; margin-top: 0;">Done</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Weight Log Modal -->
-    <div id="modal-weight-log" class="modal-backdrop">
-      <div class="modal-sheet">
-        <div class="grab"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 style="font-size: 18px;">Log Body Weight</h3>
-          <button type="button" class="btn-icon btn-close-modal"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-        </div>
-        <div class="form-group" style="margin-top: 12px;">
-          <label class="form-label" for="input-daily-weight">Today's Weight (kg)</label>
-          <input type="number" step="0.1" id="input-daily-weight" class="form-input num" placeholder="e.g. 75.4">
-        </div>
-        <button type="button" id="btn-save-weight-log" class="cta" style="margin-top: 8px;">Save Entry</button>
-      </div>
+      <div class="live-body" id="live-workout-body" style="padding: 16px; overflow-y: auto; flex: 1;"></div>
     </div>
 
   </div>
 
-  <!-- Load Main Application Logic -->
+  <!-- Load Modules -->
   <script type="module" src="./app.js"></script>
 </body>
 </html>

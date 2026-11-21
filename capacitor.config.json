@@ -1,6 +1,6 @@
 {
-  "appId": "com.setly.app",
-  "appName": "SETLY",
+  "appId": "com.pushpa.app",
+  "appName": "Pushpa",
   "webDir": "prototype",
   "bundledWebRuntime": false,
   "server": {

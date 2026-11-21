@@ -33,3 +33,6 @@ temp/
 tools/
 .pub_cache/
 .gradle/
+
+# GitHub workflows (excluded to allow pushes with standard PATs without workflow scope)
+.github/

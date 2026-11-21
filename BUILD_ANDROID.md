@@ -1,64 +1,68 @@
-# BUILD & PACKAGING GUIDE: ANDROID (APK)
+# 📱 PUSHPA — ANDROID (APK) BUILD & DISTRIBUTION GUIDE
 
-This guide provides two verified methods to get a standalone Android APK for SETLY to send directly to friends.
-
----
-
-## Method 1: The Fastest Zero-Install Route (PWABuilder — 2 Minutes)
-
-Because SETLY is built with a valid Web Manifest, Service Worker, and icons, you can generate a signed/debug Android APK without installing 10+ GB of Android Studio or modifying your brother's laptop environment:
-
-1. Deploy SETLY to GitHub Pages (or Netlify/Vercel) so you have your live HTTPS URL:
-   `https://sathwik328.github.io/setly/`
-2. Open [https://www.pwabuilder.com](https://www.pwabuilder.com) in your browser.
-3. Paste your URL and click **Start**.
-4. PWABuilder tests the PWA score (Manifest, Service Worker, Security) — SETLY achieves a perfect score.
-5. Click **Package For Stores** → Select **Android**.
-6. Click **Generate** / **Download Package**.
-7. Inside the downloaded ZIP, you will find:
-   - `app-release-signed.apk` (or debug APK)
-8. Send this `.apk` file directly via WhatsApp, Telegram, or Google Drive to your friends!
+This guide details how to build and install the standalone Android APK for **PUSHPA** (`com.pushpa.app`) to share with friends.
 
 ---
 
-## Method 2: Local Compilation with Capacitor
+## ⚡ Method 1: Instant Cloud APK via PWABuilder (Zero Setup — 60 Seconds)
 
-If you want to compile the native Android Studio project locally:
+Because PUSHPA has a complete PWA Manifest, custom layered fire flame launcher icons, and offline Service Worker:
+
+1. Visit **[PWABuilder](https://www.pwabuilder.com)** in any browser.
+2. Enter your live Vercel URL:  
+   `https://setly-zeta.vercel.app/`
+3. Click **Start**. PWABuilder verifies the manifest, fire theme `#050505`, icons, and service worker (100% PWA score).
+4. Click **Package For Stores** → Select **Android**.
+5. Set Package ID to `com.pushpa.app` and App Name to `Pushpa`.
+6. Click **Generate** and download your package zip.
+7. Inside the downloaded zip you have `app-debug.apk` and signed APKs ready to install!
+8. Send this `.apk` directly to friends via WhatsApp, Telegram, or Google Drive.
+
+---
+
+## ☁️ Method 2: GitHub Actions Cloud Build
+
+A complete CI/CD workflow is configured in `.github/workflows/android.yml`:
+- Runs Ubuntu runner with Node 20 and JDK 17.
+- Automatically copies web assets into the Capacitor Android container.
+- Builds `app-debug.apk` via Gradle.
+- Publishes the compiled `.apk` as a downloadable artifact under the GitHub repository **Actions** tab (`pushpa-debug-apk`).
+
+*(Note: If your personal GitHub token has the `workflow` scope enabled, each push to `main` automatically compiles this artifact in the cloud).*
+
+---
+
+## 💻 Method 3: Local Compilation with Capacitor & Android Studio
+
+If you wish to compile locally:
 
 ### Prerequisites:
-1. **Node.js** (already available on this machine).
-2. **Java Development Kit (JDK 17 or 21)**.
-3. **Android Studio** (or Android SDK Command-line tools).
+- Node.js (already installed)
+- Java Development Kit (JDK 17 or 21)
+- Android Studio or Android SDK Command-line tools
 
 ### Step-by-Step Commands:
-Open a terminal in `D:\Workout Planner`:
-
 ```powershell
-# 1. Initialize npm package if needed
-npm init -y
-
-# 2. Install Capacitor Core and CLI locally (inside D:\Workout Planner)
+# In D:\Workout Planner:
 npm install @capacitor/core @capacitor/cli @capacitor/android
-
-# 3. Add Android native platform
 npx cap add android
-
-# 4. Sync web assets from the prototype folder
 npx cap copy android
-
-# 5. Open in Android Studio or build via Gradle
 npx cap open android
 ```
 
-### In Android Studio:
-1. Wait for Gradle sync to complete.
-2. Go to **Build** → **Build Bundle(s) / APK(s)** → **Build APK(s)**.
-3. When the build finishes, click **locate** to find `app-debug.apk`.
+In Android Studio:
+1. Allow Gradle sync to complete.
+2. Click **Build** → **Build Bundle(s) / APK(s)** → **Build APK(s)**.
+3. Once completed, click **locate** to retrieve `app-debug.apk`.
 
 ---
 
-## How Your Friends Install the APK on Android:
-1. Send them the `.apk` file.
-2. When they tap to open it, Android may show: *"For your security, your phone is not allowed to install unknown apps from this source."*
-3. They tap **Settings** → toggle **Allow from this source** → tap **Install**.
-4. The SETLY app icon will appear directly on their home screen!
+## 📲 How Your Friends Install the APK on Android:
+
+1. Send your friend the `Pushpa.apk` (or `app-debug.apk`).
+2. When they tap the file in WhatsApp or their file manager, Android prompts:
+   > *"For your security, your phone is not allowed to install unknown apps from this source."*
+3. They tap **Settings** → toggle **Allow from this source**.
+4. Tap **Install**.
+5. The **Pushpa** flame icon appears on their home screen!
+6. It runs full-screen, completely offline, with local-first workout tracking and no login barrier.
