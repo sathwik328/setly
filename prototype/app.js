@@ -116,6 +116,56 @@ function noiseBurst(startDelay, duration, gainVal = 0.04, bandFreq = 800) {
   } catch (e) {}
 }
 
+function fireWhooshAudio() {
+  if (isAudioMuted || !audioCtx) return;
+  try {
+    const now = audioCtx.currentTime;
+
+    // 1. Deep rumble sub-bass
+    const subOsc = audioCtx.createOscillator();
+    const subGain = audioCtx.createGain();
+    subOsc.type = "sine";
+    subOsc.frequency.setValueAtTime(45, now);
+    subOsc.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+    subOsc.frequency.exponentialRampToValueAtTime(35, now + 1.2);
+    subGain.gain.setValueAtTime(0, now);
+    subGain.gain.linearRampToValueAtTime(0.18, now + 0.15);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+    subOsc.connect(subGain).connect(audioCtx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 1.25);
+
+    // 2. Whoosh noise sweep (bandpass sweep)
+    const bufferSize = Math.floor(audioCtx.sampleRate * 1.8);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.Q.value = 2.0;
+    filter.frequency.setValueAtTime(180, now);
+    filter.frequency.exponentialRampToValueAtTime(1300, now + 0.55); // fire rises to peak
+    filter.frequency.exponentialRampToValueAtTime(140, now + 1.5); // fire recedes
+
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.linearRampToValueAtTime(0.12, now + 0.35);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+
+    noise.connect(filter).connect(noiseGain).connect(audioCtx.destination);
+    noise.start(now);
+
+    // 3. Crackle bursts as it recedes
+    [0.8, 1.0, 1.2, 1.4].forEach(t => {
+      noiseBurst(t, 0.12, 0.03, 1400 + Math.random() * 600);
+    });
+  } catch (e) {}
+}
+
 export const S = {
   tap: () => tone(520, 0, 0.06, 0.04),
   tab: () => tone(620, 0, 0.08, 0.04),
@@ -127,11 +177,7 @@ export const S = {
   },
   lock: () => tone(160, 0, 0.18, 0.08, "triangle"),
   thump: () => tone(80, 0, 0.14, 0.12, "triangle"),
-  fireIgnite: () => {
-    tone(60, 0, 0.8, 0.14, "sine");
-    noiseBurst(0.1, 0.6, 0.06, 600);
-    noiseBurst(0.4, 0.4, 0.05, 1200);
-  }
+  fireWoosh: () => fireWhooshAudio()
 };
 
 /* ==========================================================================
@@ -249,14 +295,10 @@ function initFireIntro() {
   const skipBtn = $("#btn-skip-intro");
   if (!splash) return;
 
-  const now = Date.now();
-  const lastActive = state.lastActiveTimestamp || 0;
-  const hoursSince = (now - lastActive) / (1000 * 60 * 60);
-
-  // If away less than 12 hours, play short 1.4s ignite
-  const isQuick = hoursSince < 12 && sessionStorage.getItem("PUSHPA_INTRO_SEEN");
-
+  let isDismissed = false;
   const dismiss = () => {
+    if (isDismissed) return;
+    isDismissed = true;
     cancelAnimationFrame(emberAnimationId);
     splash.classList.add("out");
     sessionStorage.setItem("PUSHPA_INTRO_SEEN", "true");
@@ -264,30 +306,33 @@ function initFireIntro() {
     saveState(state);
   };
 
-  skipBtn?.addEventListener("click", dismiss);
+  skipBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dismiss();
+  });
   splash.addEventListener("click", dismiss);
 
-  if (isQuick) {
-    setTimeout(dismiss, 1400);
-    return;
-  }
-
-  // Full 4.5s cinematic timeline
+  // Play realistic fire whoosh sound when fire surges
   setTimeout(() => {
     wakeAudio();
-    S.fireIgnite();
-  }, 400);
+    S.fireWoosh();
+  }, 250);
 
-  // Letter slam thumps
-  [600, 800, 1000, 1200, 1700, 1900].forEach(delay => {
+  // Letter slam thumps as letters appear after fire recedes
+  [2100, 2250, 2400, 2550, 2750, 2950, 3100].forEach(delay => {
     setTimeout(() => S.thump(), delay);
   });
 
-  setTimeout(dismiss, 4600);
+  // Timeline:
+  // 0.0s - 2.1s: Fire surges from bottom & recedes
+  // 2.1s - 3.3s: PUSH-PA wordmark & tagline reveal
+  // 3.3s - 5.0s: PAUSE for 1.7s so user clearly sees the full name
+  // 5.1s: Smooth fade-out into app
+  setTimeout(dismiss, 5100);
 }
 
 /* ==========================================================================
-   MODE SWITCHER (AI PLANNER vs LOGBOOK — Section 4)
+   HOMEPAGE & MODE SELECTOR (AI PLANNER vs LOGBOOK)
    ========================================================================== */
 
 function initModeSwitcher() {
@@ -304,13 +349,16 @@ function initModeSwitcher() {
     S.open();
   });
 
-  // Top header mode switcher buttons
-  $$("#mode-switch-pill .mode-switch-btn").forEach(btn => {
-    btn.onclick = () => {
-      const mode = btn.getAttribute("data-mode");
-      applyModeUI(mode);
-      S.tab();
-    };
+  // Top header mode switch button opens mode select
+  $("#btn-header-mode-toggle")?.addEventListener("click", () => {
+    switchScreen("s-mode-select");
+    S.open();
+  });
+
+  // Profile mode change button opens mode select
+  $("#btn-profile-change-mode")?.addEventListener("click", () => {
+    switchScreen("s-mode-select");
+    S.open();
   });
 
   // Logo home click opens mode select
@@ -324,9 +372,15 @@ function applyModeUI(mode) {
   state.activeMode = mode;
   saveState(state);
 
-  $$("#mode-switch-pill .mode-switch-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.getAttribute("data-mode") === mode);
-  });
+  const headerLabel = $("#header-mode-label");
+  if (headerLabel) {
+    headerLabel.textContent = mode === "planner" ? "⚡ AI Planner" : "📝 Logbook";
+  }
+
+  const profileModeLabel = $("#profile-current-mode-label");
+  if (profileModeLabel) {
+    profileModeLabel.textContent = mode === "planner" ? "Currently: AI Planner" : "Currently: Workout Logbook";
+  }
 
   const plannerViews = $("#mode-planner-views");
   const logbookViews = $("#mode-logbook-views");
@@ -336,24 +390,42 @@ function applyModeUI(mode) {
     logbookViews?.classList.add("hidden");
     renderPlannerToday();
     renderPlanTab();
+    switchScreen("s-today");
   } else {
     plannerViews?.classList.add("hidden");
     logbookViews?.classList.remove("hidden");
     renderLogbookToday();
     renderLogbookReports();
+    switchScreen("s-logbook-today");
   }
 
-  switchScreen(mode === "planner" ? "s-today" : "s-logbook-today");
+  // Update bottom tab buttons active state
+  $$("#tabs button").forEach(t => t.classList.toggle("on", t.getAttribute("data-t") === "today"));
 }
 
 /* ==========================================================================
-   NAVIGATION
+   NAVIGATION & SCREEN MANAGEMENT
    ========================================================================== */
 
 function switchScreen(screenId) {
   $$(".scr").forEach(s => s.classList.remove("on"));
   const target = $(`#${screenId}`);
   if (target) target.classList.add("on");
+
+  const isAuthOrSelect = screenId === "s-auth" || screenId === "s-mode-select" || screenId === "s-onboarding";
+  const headerNav = $("#main-top-nav");
+  const bottomNav = $("#tabs");
+  const appContainer = $("#app");
+
+  if (isAuthOrSelect) {
+    headerNav?.classList.add("hidden");
+    bottomNav?.classList.add("hidden");
+    if (appContainer) appContainer.style.top = "0";
+  } else {
+    headerNav?.classList.remove("hidden");
+    bottomNav?.classList.remove("hidden");
+    if (appContainer) appContainer.style.top = "var(--header-height)";
+  }
 }
 
 function initNavigation() {

@@ -20,47 +20,123 @@
          ==================================================================== -->
     <div id="fire-splash">
       <canvas id="ember-canvas"></canvas>
-      <div class="fire-shockwave" id="fire-shockwave"></div>
       
-      <div class="fire-logo-wrap">
-        <!-- Layered Animated SVG Flame -->
-        <svg class="pushpa-flame-svg" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+      <!-- STAGE 1: Giant Fire Flame (Emoji Silhouette) that surges from bottom and recedes -->
+      <div class="fire-surge-wrapper" id="fire-surge-wrapper">
+        <svg class="giant-fire-emoji-svg" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <filter id="flame-glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur"/>
-              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            <filter id="fire-bloom-filter" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur1"/>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur2"/>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur3"/>
+              <feMerge>
+                <feMergeNode in="blur3"/>
+                <feMergeNode in="blur2"/>
+                <feMergeNode in="blur1"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
             </filter>
+            <linearGradient id="fire-grad-outer" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#FF1A00"/>
+              <stop offset="35%" stop-color="#FF3D2E"/>
+              <stop offset="70%" stop-color="#FF6A00"/>
+              <stop offset="100%" stop-color="#FF9500"/>
+            </linearGradient>
+            <linearGradient id="fire-grad-mid" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#FF3D00"/>
+              <stop offset="45%" stop-color="#FF7A00"/>
+              <stop offset="85%" stop-color="#FFC000"/>
+              <stop offset="100%" stop-color="#FFE066"/>
+            </linearGradient>
+            <linearGradient id="fire-grad-core" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#FFAA00"/>
+              <stop offset="50%" stop-color="#FFF3B0"/>
+              <stop offset="100%" stop-color="#FFFFFF"/>
+            </linearGradient>
+            <radialGradient id="fire-halo" cx="50%" cy="70%" r="65%">
+              <stop offset="0%" stop-color="rgba(255, 106, 0, 0.65)"/>
+              <stop offset="45%" stop-color="rgba(255, 61, 46, 0.35)"/>
+              <stop offset="80%" stop-color="rgba(255, 26, 0, 0.08)"/>
+              <stop offset="100%" stop-color="rgba(0, 0, 0, 0)"/>
+            </radialGradient>
           </defs>
-          <!-- Outer Flame (Red) -->
-          <path class="flame-outer" filter="url(#flame-glow)" d="M50 15 C45 35 25 50 25 75 C25 95 38 110 50 110 C62 110 75 95 75 75 C75 50 55 35 50 15 Z"/>
-          <!-- Mid Flame (Orange) -->
-          <path class="flame-mid" d="M50 35 C44 50 32 62 32 80 C32 94 40 105 50 105 C60 105 68 94 68 80 C68 62 56 50 50 35 Z"/>
-          <!-- Inner Flame (Yellow) -->
-          <path class="flame-inner" d="M50 55 C46 68 38 75 38 88 C38 98 44 102 50 102 C56 102 62 98 62 88 C62 75 54 68 50 55 Z"/>
-          <!-- Core (White-hot) -->
-          <path class="flame-core" d="M50 72 C47 80 43 85 43 92 C43 98 46 100 50 100 C54 100 57 98 57 92 C57 85 53 80 50 72 Z"/>
+
+          <!-- Ambient Light Halo -->
+          <circle cx="100" cy="155" r="95" fill="url(#fire-halo)"/>
+
+          <!-- Outer Flame Body (Sculpted Emoji Fire Silhouette) -->
+          <path class="fire-flame-outer" filter="url(#fire-bloom-filter)" fill="url(#fire-grad-outer)"
+            d="M 100 12
+               C 94 38, 70 65, 68 88
+               C 66 100, 70 108, 74 115
+               C 62 104, 55 88, 58 75
+               C 40 96, 32 126, 38 156
+               C 45 194, 70 224, 100 226
+               C 130 228, 158 200, 162 166
+               C 164 136, 152 110, 136 90
+               C 138 104, 134 116, 126 125
+               C 128 106, 120 82, 114 68
+               C 107 52, 105 32, 100 12 Z"/>
+
+          <!-- Mid Layer (Sculpted Tongues) -->
+          <path class="fire-flame-mid" fill="url(#fire-grad-mid)"
+            d="M 100 55
+               C 95 78, 78 98, 76 118
+               C 74 128, 78 135, 82 140
+               C 73 130, 69 118, 71 108
+               C 61 124, 57 144, 62 166
+               C 67 194, 85 214, 102 216
+               C 120 218, 140 198, 142 172
+               C 144 150, 134 130, 122 118
+               C 123 128, 120 136, 114 142
+               C 116 128, 110 112, 106 100
+               C 103 86, 102 72, 100 55 Z"/>
+
+          <!-- Core Layer (White-Hot Center) -->
+          <path class="fire-flame-core" fill="url(#fire-grad-core)"
+            d="M 101 108
+               C 97 126, 85 140, 84 154
+               C 83 162, 86 166, 90 170
+               C 84 162, 82 154, 83 146
+               C 78 156, 75 168, 78 182
+               C 82 200, 95 210, 102 211
+               C 113 212, 124 200, 126 182
+               C 127 168, 120 156, 112 146
+               C 113 152, 111 158, 108 162
+               C 109 152, 106 142, 104 135
+               C 102 125, 101 116, 101 108 Z"/>
         </svg>
+      </div>
 
-        <!-- Wordmark: PUSH–PA with glowing heated barbell bar -->
+      <!-- STAGE 2: PUSH–PA Wordmark that rises when fire goes back -->
+      <div class="fire-logo-wrap" id="fire-logo-wrap">
         <div class="pushpa-wordmark" id="intro-wordmark">
-          <span class="letter" style="animation-delay: 0.6s;">P</span>
-          <span class="letter" style="animation-delay: 0.8s;">U</span>
-          <span class="letter" style="animation-delay: 1.0s;">S</span>
-          <span class="letter" style="animation-delay: 1.2s;">H</span>
-          <span class="dash-bar"></span>
-          <span class="letter" style="animation-delay: 1.7s;">P</span>
-          <span class="letter" style="animation-delay: 1.9s;">A</span>
+          <span class="letter word-push" style="animation-delay: 2.1s;">P</span>
+          <span class="letter word-push" style="animation-delay: 2.25s;">U</span>
+          <span class="letter word-push" style="animation-delay: 2.4s;">S</span>
+          <span class="letter word-push" style="animation-delay: 2.55s;">H</span>
+          <span class="dash-bar" style="animation-delay: 2.75s;"></span>
+          <span class="letter word-pa" style="animation-delay: 2.95s;">P</span>
+          <span class="letter word-pa" style="animation-delay: 3.1s;">A</span>
         </div>
-
-        <p class="intro-tagline">Train. Track. Burn.</p>
+        <p class="intro-tagline" style="animation-delay: 3.3s;">Train. Track. Burn.</p>
       </div>
 
       <button type="button" class="skip-intro-btn" id="btn-skip-intro">Tap to Skip</button>
     </div>
 
-    <!-- Sticky Top Navigation Header -->
-    <header class="top-nav">
-      <div class="brand-badge" id="brand-home-link" style="cursor: pointer;">
+    <!-- Floating Sound Toggle Button (Always Available) -->
+    <button class="snd-toggle-btn" id="snd" aria-label="Toggle Sound Effects">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+        <path id="sw" d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/>
+      </svg>
+    </button>
+
+    <!-- Sticky Top Navigation Header (Shown ONLY when inside training modes) -->
+    <header class="top-nav hidden" id="main-top-nav">
+      <!-- Left: Brand Logo (Tap returns to Mode Select homepage) -->
+      <div class="brand-badge" id="brand-home-link" title="Return to Mode Selection">
         <svg class="header-mini-flame" viewBox="0 0 100 120">
           <path fill="#FF3D2E" d="M50 15 C45 35 25 50 25 75 C25 95 38 110 50 110 C62 110 75 95 75 75 C75 50 55 35 50 15 Z"/>
           <path fill="#FF6A00" d="M50 35 C44 50 32 62 32 80 C32 94 40 105 50 105 C60 105 68 94 68 80 C68 62 56 50 50 35 Z"/>
@@ -69,94 +145,135 @@
         <span style="font-weight: 900; letter-spacing: -0.2px;">PUSH<span style="color: var(--fire);">–</span>PA</span>
       </div>
 
-      <!-- Mode Switcher Pill -->
-      <div class="mode-switch-pill" id="mode-switch-pill">
-        <button type="button" class="mode-switch-btn active" data-mode="planner">AI Planner</button>
-        <button type="button" class="mode-switch-btn" data-mode="logbook">Logbook</button>
-      </div>
+      <!-- Center: Clean Mode Indicator Chip with Switch Icon -->
+      <button type="button" class="mode-chip-pill" id="btn-header-mode-toggle" title="Switch Mode">
+        <span id="header-mode-label">⚡ AI Planner</span>
+        <span style="font-size: 11px; opacity: 0.6; margin-left: 4px;">⇄</span>
+      </button>
 
+      <!-- Right: Streak Badge -->
       <div class="top-nav-actions">
-        <!-- Streak Flame -->
         <span id="streak-badge" class="chip" style="padding: 4px 8px; font-size: 11px; font-weight: 700; color: var(--flame); margin: 0;">
           🔥 <span class="num" id="streak-count">1</span>W
         </span>
-        <!-- Sound Mute Toggle -->
-        <button type="button" class="snd-btn" id="snd" aria-label="Toggle Sound">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 9v6h4l5 4V5L8 9H4z"/>
-            <path id="sw" d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/>
-          </svg>
-        </button>
       </div>
     </header>
 
     <!-- Main Container -->
-    <div id="app" style="position: absolute; inset: var(--header-height) 0 0 0;">
+    <div id="app" style="position: absolute; inset: 0;">
 
       <!-- ====================================================================
            AUTH SCREEN
            ==================================================================== -->
       <section class="scr on" id="s-auth" style="z-index: 30;">
-        <div style="padding-top: 24px; text-align: center; margin-bottom: 20px;">
-          <h1 style="font-size: 32px; letter-spacing: -0.5px;">Welcome to PUSHPA</h1>
-          <p class="sub" style="max-width: 280px; margin: 4px auto 0;">
-            Adaptive fitness engine and Notion-style workout logbook.
-          </p>
-        </div>
-
-        <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <b id="auth-title" style="font-size: 15px;">Log In</b>
-            <button type="button" id="btn-toggle-auth-mode" class="chip" style="margin-top: 0;">Sign Up</button>
+        <div class="auth-wrapper">
+          <div class="auth-header">
+            <div class="auth-flame-icon">
+              <svg viewBox="0 0 100 120">
+                <path fill="#FF3D2E" d="M50 15 C45 35 25 50 25 75 C25 95 38 110 50 110 C62 110 75 95 75 75 C75 50 55 35 50 15 Z"/>
+                <path fill="#FF6A00" d="M50 35 C44 50 32 62 32 80 C32 94 40 105 50 105 C60 105 68 94 68 80 C68 62 56 50 50 35 Z"/>
+                <path fill="#FFB020" d="M50 55 C46 68 38 75 38 88 C38 98 44 102 50 102 C56 102 62 98 62 88 C62 75 54 68 50 55 Z"/>
+              </svg>
+            </div>
+            <h1>Welcome to PUSHPA</h1>
+            <p class="sub">Train. Track. Burn.</p>
           </div>
 
-          <form id="auth-form" onsubmit="return false;">
-            <div class="form-group">
-              <label class="form-label" for="auth-username">Username or Email</label>
-              <input type="text" id="auth-username" class="form-input" placeholder="e.g. sathwik" autocomplete="username" required>
+          <div class="card auth-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <b id="auth-title" style="font-size: 15px;">Log In to Your Plan</b>
+              <button type="button" id="btn-toggle-auth-mode" class="chip">Sign Up</button>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="auth-password">Password</label>
-              <input type="password" id="auth-password" class="form-input" placeholder="••••••••" autocomplete="current-password" required>
-            </div>
-            <button type="submit" id="btn-auth-submit" class="cta">Log In</button>
-          </form>
 
-          <div style="display: flex; align-items: center; gap: 10px; margin: 16px 0;">
-            <div style="flex: 1; height: 1px; background: var(--line);"></div>
-            <span class="text-muted" style="font-size: 11px; text-transform: uppercase;">or</span>
-            <div style="flex: 1; height: 1px; background: var(--line);"></div>
+            <form id="auth-form" onsubmit="return false;">
+              <div class="form-group">
+                <label class="form-label" for="auth-username">Username or Email</label>
+                <input type="text" id="auth-username" class="form-input" placeholder="e.g. sathwik" autocomplete="username" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="auth-password">Password</label>
+                <input type="password" id="auth-password" class="form-input" placeholder="••••••••" autocomplete="current-password" required>
+              </div>
+              <button type="submit" id="btn-auth-submit" class="cta">Log In</button>
+            </form>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin: 16px 0;">
+              <div style="flex: 1; height: 1px; background: var(--line);"></div>
+              <span class="text-muted" style="font-size: 11px; text-transform: uppercase;">or</span>
+              <div style="flex: 1; height: 1px; background: var(--line);"></div>
+            </div>
+
+            <button type="button" id="btn-guest-login" class="btn-secondary" style="width: 100%; height: 48px;">
+              <span>Continue as Guest (Instant Access)</span>
+            </button>
           </div>
-
-          <button type="button" id="btn-guest-login" class="btn-secondary" style="width: 100%; height: 46px;">
-            <span>Continue as Guest (Instant Access)</span>
-          </button>
         </div>
       </section>
 
       <!-- ====================================================================
-           MODE SELECT SCREEN (Section 4)
+           HOMEPAGE: CHOOSE YOUR PATH (MODE SELECT SCREEN)
            ==================================================================== -->
       <section class="scr" id="s-mode-select" style="z-index: 25;">
-        <h1 style="font-size: 28px;">Choose Your Mode</h1>
-        <p class="sub" style="margin-bottom: 20px;">Switch anytime in the top bar. Data stays separate.</p>
+        <div class="mode-select-container">
+          
+          <!-- Brand Badge Header -->
+          <div style="text-align: center; margin-bottom: 22px;">
+            <div class="auth-flame-icon" style="margin: 0 auto 10px; width: 42px; height: 50px;">
+              <svg viewBox="0 0 100 120" style="width: 100%; height: 100%; filter: drop-shadow(0 0 14px var(--fire));">
+                <path fill="#FF3D2E" d="M50 15 C45 35 25 50 25 75 C25 95 38 110 50 110 C62 110 75 95 75 75 C75 50 55 35 50 15 Z"/>
+                <path fill="#FF6A00" d="M50 35 C44 50 32 62 32 80 C32 94 40 105 50 105 C60 105 68 94 68 80 C68 62 56 50 50 35 Z"/>
+                <path fill="#FFB020" d="M50 55 C46 68 38 75 38 88 C38 98 44 102 50 102 C56 102 62 98 62 88 C62 75 54 68 50 55 Z"/>
+              </svg>
+            </div>
+            <h1 style="font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Choose Your Training Path</h1>
+            <p class="sub" style="font-size: 13px; color: var(--dim); margin-top: 4px;">
+              Select how you want to train today. Switch anytime in Profile.
+            </p>
+          </div>
 
-        <!-- Card 1: AI Planner -->
-        <div class="mode-card" id="mode-card-planner">
-          <span class="mode-card-tag">⚡ Automated Program</span>
-          <h2 class="mode-card-title">AI Planner</h2>
-          <p class="mode-card-desc">
-            Get a tailored rolling plan built for you. Adapts weekly with double progression and full day maps.
-          </p>
-        </div>
+          <!-- The Two Mode Options (Centered on Screen) -->
+          <div class="mode-options-grid">
+            
+            <!-- Path 1: AI Planner -->
+            <div class="mode-option-card" id="mode-card-planner" role="button" tabindex="0">
+              <div class="mode-card-badge on">⚡ Automated Mesocycle</div>
+              <div class="mode-card-head">
+                <h2 class="mode-card-title">AI Planner</h2>
+                <div class="mode-arrow-circle">→</div>
+              </div>
+              <p class="mode-card-desc">
+                An adaptive, rolling program built for you. Generates daily exercises, sets, reps & weights with intelligent double progression.
+              </p>
+              <div class="mode-card-features">
+                <span>• 30–360 Day Periodized Roadmaps</span>
+                <span>• Anatomical Volume Heatmap</span>
+                <span>• Automated Progressive Overload</span>
+              </div>
+            </div>
 
-        <!-- Card 2: Logbook -->
-        <div class="mode-card" id="mode-card-logbook">
-          <span class="mode-card-tag">📝 Free Space & Journal</span>
-          <h2 class="mode-card-title">Logbook</h2>
-          <p class="mode-card-desc">
-            A free Notion-style space. Write your own sessions, view "Last time" auto-comparisons, and track consistency.
+            <!-- Path 2: Logbook -->
+            <div class="mode-option-card" id="mode-card-logbook" role="button" tabindex="0">
+              <div class="mode-card-badge">📝 Free Space & Journal</div>
+              <div class="mode-card-head">
+                <h2 class="mode-card-title">Workout Logbook</h2>
+                <div class="mode-arrow-circle">→</div>
+              </div>
+              <p class="mode-card-desc">
+                A Notion-style free space. Add your own exercises, see display-only "Last time" targets, and catch up missed days without falling behind.
+              </p>
+              <div class="mode-card-features">
+                <span>• Freeform Set & Rep Tracking</span>
+                <span>• Display-Only "Last Time" Target Lines</span>
+                <span>• Missed-Day Queue & Weekly Reset</span>
+              </div>
+            </div>
+
+          </div>
+
+          <p class="sub" style="text-align: center; font-size: 11px; color: var(--muted); margin-top: 18px;">
+            Your training data is stored safely on this device.
           </p>
+
         </div>
       </section>
 
@@ -297,6 +414,17 @@
               <b id="profile-name" style="font-size: 17px;">Athlete</b>
               <span class="sub" id="profile-sub" style="display: block;">Intermediate • Hypertrophy</span>
             </div>
+          </div>
+
+          <!-- Training Mode Switcher Card -->
+          <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <b style="font-size: 15px;">Training Mode</b>
+              <span class="sub" id="profile-current-mode-label" style="display: block; margin-top: 2px;">Currently: AI Planner</span>
+            </div>
+            <button type="button" id="btn-profile-change-mode" class="chip on" style="margin: 0; padding: 7px 12px; font-size: 11px;">
+              Switch Path ⇄
+            </button>
           </div>
 
           <!-- Backup & Restore Section (Section 8) -->
