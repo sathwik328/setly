@@ -424,16 +424,88 @@ header.top-nav.hidden {
 }
 
 /* ==========================================================================
+   APP SCREENS & ROUTING LAYOUT
+   ========================================================================== */
+
+#app {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scr {
+  position: absolute;
+  inset: 0 0 var(--nav-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 18px 24px;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.22s ease;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scr.on {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.scr::-webkit-scrollbar {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Live Workout Tracking Fullscreen Sheet */
+#live-workout-screen {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  z-index: 140;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: transform var(--transition-smooth), opacity var(--transition-smooth);
+}
+
+#live-workout-screen.active {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* ==========================================================================
    AUTH SCREEN (Centered, Spacious, Crisp)
    ========================================================================== */
 
 #s-auth {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 24px 18px;
-  min-height: 100%;
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  z-index: 30;
+}
+
+#s-auth.on {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .auth-wrapper {
@@ -485,12 +557,24 @@ header.top-nav.hidden {
    ========================================================================== */
 
 #s-mode-select {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 24px 18px;
-  min-height: 100%;
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  z-index: 25;
+}
+
+#s-mode-select.on {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .mode-select-container {

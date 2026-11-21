@@ -1,4 +1,4 @@
-const CACHE_NAME = "pushpa-offline-v3";
+const CACHE_NAME = "pushpa-offline-v4";
 const ASSETS = [
   "./",
   "./index.html",
