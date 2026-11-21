@@ -1,0 +1,188 @@
+/* ==========================================================================
+   PUSHPA LIVE GYM WORKOUT (css/screens/live-workout.css)
+   Full-screen dedicated route.
+   Separate Back & Finish buttons in header.
+   Docked rest timer bar. Grid: Set | Weight | Reps | Check.
+   ========================================================================== */
+
+.screen--live-workout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+}
+
+/* Exercise Stage */
+.workout-exercise-card {
+  background-color: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.workout-exercise-card__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--tx);
+}
+
+.workout-exercise-card__cues {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+/* Set Table Grid: Set | Weight | Reps | Check */
+.set-grid-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 1fr 48px;
+  gap: 8px;
+  align-items: center;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 0 4px;
+}
+
+.set-grid-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 1fr 48px;
+  gap: 8px;
+  align-items: center;
+  background-color: var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 6px 8px;
+  transition: border-color var(--trans-fast);
+}
+
+.set-grid-row--completed {
+  border-color: var(--effort-easy);
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+.set-grid-row__num {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.set-grid-row__input {
+  min-height: 38px;
+  text-align: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 0 4px;
+  background-color: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--tx);
+}
+
+.set-grid-row__check {
+  width: 44px;
+  height: 38px;
+  border-radius: 8px;
+  background-color: var(--s1);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--dim);
+}
+
+.set-grid-row--completed .set-grid-row__check {
+  background-color: var(--effort-easy);
+  border-color: var(--effort-easy);
+  color: #FFFFFF;
+}
+
+/* Effort Pills under Set */
+.effort-selector {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 6px;
+  background-color: var(--s2);
+  border-radius: var(--radius-control);
+}
+
+.effort-pill {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background-color: var(--s1);
+  color: var(--dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.effort-pill--easy.effort-pill--active {
+  background-color: var(--effort-easy-bg);
+  border-color: var(--effort-easy);
+  color: var(--effort-easy);
+}
+
+.effort-pill--good.effort-pill--active {
+  background-color: var(--effort-good-bg);
+  border-color: var(--effort-good);
+  color: var(--effort-good);
+}
+
+.effort-pill--hard.effort-pill--active {
+  background-color: var(--effort-hard-bg);
+  border-color: var(--effort-hard);
+  color: var(--effort-hard);
+}
+
+/* Docked Rest Timer Bar (Layout, NOT floating) */
+.rest-timer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background-color: var(--s1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-card);
+  gap: 12px;
+  box-shadow: 0 4px 16px var(--accent-bg);
+}
+
+.rest-timer-bar__countdown {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.rest-timer-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Workout Tools Row */
+.workout-tools-row {
+  display: flex;
+  gap: 8px;
+}
+
+.workout-tools-row .btn {
+  flex: 1;
+}

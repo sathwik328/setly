@@ -1,0 +1,124 @@
+/* ==========================================================================
+   PUSHPA BUTTONS & CONTROLS (css/components/buttons.css)
+   Clean, accessible, min 44px tap targets.
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: var(--radius-control);
+  font-weight: 700;
+  font-size: 15px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--trans-fast), background-color var(--trans-fast), opacity var(--trans-fast), border-color var(--trans-fast);
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled, .btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Primary Accent CTA */
+.btn--primary {
+  background-color: var(--accent);
+  color: var(--accent-tx);
+  box-shadow: 0 4px 16px rgba(217, 60, 66, 0.25);
+}
+
+.btn--primary:hover {
+  background-color: var(--accent-light);
+}
+
+/* Secondary Neutral Button */
+.btn--secondary {
+  background-color: var(--s2);
+  color: var(--tx);
+  border-color: var(--line);
+}
+
+.btn--secondary:hover {
+  background-color: var(--s3);
+}
+
+/* Ghost / Subtle Button */
+.btn--ghost {
+  background: transparent;
+  color: var(--dim);
+}
+
+.btn--ghost:hover {
+  color: var(--tx);
+  background-color: var(--s2);
+}
+
+/* Danger Button */
+.btn--danger {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+/* Full Width Utility */
+.btn--block {
+  width: 100%;
+}
+
+/* Small Button */
+.btn--sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+/* Icon Only Button */
+.btn--icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+
+/* Segmented Control Component */
+.segmented-control {
+  display: flex;
+  background-color: var(--s2);
+  padding: 4px;
+  border-radius: var(--radius-control);
+  gap: 4px;
+  border: 1px solid var(--line);
+}
+
+.segmented-control__item {
+  flex: 1;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius-control) - 4px);
+  cursor: pointer;
+  transition: background-color var(--trans-fast), color var(--trans-fast);
+}
+
+.segmented-control__item--active {
+  background-color: var(--s1);
+  color: var(--tx);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}

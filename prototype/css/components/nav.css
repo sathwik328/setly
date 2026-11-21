@@ -1,0 +1,69 @@
+/* ==========================================================================
+   PUSHPA BOTTOM NAVIGATION (css/components/nav.css)
+   Layout Contract:
+   display: grid; grid-template-columns: repeat(N, 1fr);
+   Each tab is a flex column (icon over a one-line label), min-height 56px.
+   ========================================================================== */
+
+.app-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  min-height: var(--nav-min-h);
+  background-color: var(--s1);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  z-index: var(--z-nav);
+  position: relative;
+}
+
+.app-nav[data-tabs="3"] {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.app-nav[data-tabs="4"] {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.app-nav__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: var(--nav-min-h);
+  padding: 8px 0;
+  color: var(--dim);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: color var(--trans-fast), transform var(--trans-fast);
+}
+
+.app-nav__tab svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.2px;
+  stroke: currentColor;
+  fill: none;
+  transition: transform var(--trans-fast), stroke var(--trans-fast);
+}
+
+.app-nav__tab span {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.app-nav__tab:active {
+  transform: scale(0.94);
+}
+
+.app-nav__tab--active {
+  color: var(--accent);
+}
+
+.app-nav__tab--active svg {
+  stroke: var(--accent);
+}

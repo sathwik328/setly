@@ -1,0 +1,129 @@
+/* ==========================================================================
+   PUSHPA DESIGN SYSTEM TOKENS (css/tokens.css)
+   Calm, premium, neutral foundation with subtle accent highlights.
+   NO !important allowed.
+   ========================================================================== */
+
+:root {
+  /* Default Theme: Dark */
+  --bg: #0B0B0C;
+  --s1: #141416;
+  --s2: #1C1C1F;
+  --s3: #26262A;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  /* Typography */
+  --tx: #F5F5F4;
+  --dim: #A1A1A6;
+  --muted: #6B6B70;
+
+  /* Accent: Default Red */
+  --accent: #D93C42;
+  --accent-light: #FF5A60;
+  --accent-bg: rgba(217, 60, 66, 0.12);
+  --accent-tx: #FFFFFF;
+
+  /* Fire Theme (Strictly for Intro & Branding Logo) */
+  --fire-flame: #FF6A00;
+  --fire-glow: #FFB020;
+  --fire-hot: #FF3D2E;
+
+  /* Effort Tags */
+  --effort-easy: #10B981;
+  --effort-easy-bg: rgba(16, 185, 129, 0.12);
+  --effort-good: #3B82F6;
+  --effort-good-bg: rgba(59, 130, 246, 0.12);
+  --effort-hard: #F59E0B;
+  --effort-hard-bg: rgba(245, 158, 11, 0.12);
+  --effort-pain: #EF4444;
+  --effort-pain-bg: rgba(239, 68, 68, 0.14);
+
+  /* Geometry & Layout */
+  --shell-max-w: 430px;
+  --header-min-h: 56px;
+  --nav-min-h: 56px;
+  --touch-target-min: 44px;
+  --radius-card: 20px;
+  --radius-control: 14px;
+  --radius-pill: 999px;
+
+  /* Transitions */
+  --trans-fast: 0.2s ease-out;
+  --trans-smooth: 0.28s ease-out;
+
+  /* Overlay Z-Index Scale (Section 2) */
+  --z-nav: 10;
+  --z-sheet: 20;
+  --z-modal: 30;
+  --z-toast: 40;
+  --z-intro: 50;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg: #F7F6F4;
+  --s1: #FFFFFF;
+  --s2: #F0EEEB;
+  --s3: #E5E2DD;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.16);
+
+  --tx: #151515;
+  --dim: #5E5A55;
+  --muted: #8F8B85;
+
+  --accent: #C8323A;
+  --accent-light: #DE3F47;
+  --accent-bg: rgba(200, 50, 58, 0.10);
+  --accent-tx: #FFFFFF;
+}
+
+/* 6 Editable Accent Swatches */
+[data-accent="red"] {
+  --accent: #D93C42;
+  --accent-light: #FF5A60;
+  --accent-bg: rgba(217, 60, 66, 0.12);
+  --accent-tx: #FFFFFF;
+}
+[data-theme="light"][data-accent="red"] {
+  --accent: #C8323A;
+  --accent-light: #DE3F47;
+  --accent-bg: rgba(200, 50, 58, 0.10);
+  --accent-tx: #FFFFFF;
+}
+
+[data-accent="rose"] {
+  --accent: #E11D74;
+  --accent-light: #F43F8E;
+  --accent-bg: rgba(225, 29, 116, 0.12);
+  --accent-tx: #FFFFFF;
+}
+
+[data-accent="blue"] {
+  --accent: #2F6FEB;
+  --accent-light: #4E86F8;
+  --accent-bg: rgba(47, 111, 235, 0.12);
+  --accent-tx: #FFFFFF;
+}
+
+[data-accent="teal"] {
+  --accent: #0E9F8E;
+  --accent-light: #18B8A5;
+  --accent-bg: rgba(14, 159, 142, 0.12);
+  --accent-tx: #FFFFFF;
+}
+
+[data-accent="violet"] {
+  --accent: #7C5CFA;
+  --accent-light: #9479FB;
+  --accent-bg: rgba(124, 92, 250, 0.12);
+  --accent-tx: #FFFFFF;
+}
+
+[data-accent="graphite"] {
+  --accent: #8E8E93;
+  --accent-light: #AEAEC0;
+  --accent-bg: rgba(142, 142, 147, 0.15);
+  --accent-tx: #FFFFFF;
+}

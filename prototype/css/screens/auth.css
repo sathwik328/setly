@@ -1,0 +1,74 @@
+/* ==========================================================================
+   PUSHPA AUTH SCREEN (css/screens/auth.css)
+   Clean, perfectly centered card. No banners, no timers, no bottom nav.
+   ========================================================================== */
+
+.screen--auth {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 16px;
+  gap: 24px;
+}
+
+.auth-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.auth-hero__logo {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+}
+
+.auth-hero__title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--tx);
+}
+
+.auth-hero__tagline {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background-color: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.auth-card__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+
+.auth-card__divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--line);
+}
+
+.auth-card__divider-text {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+}

@@ -1,0 +1,89 @@
+/* ==========================================================================
+   PUSHPA SETTINGS & PROFILE SCREEN (css/screens/settings.css)
+   Full profile vitals, theme selector, 6 swatches, sound, backups.
+   ========================================================================== */
+
+.screen--settings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 30px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-section__title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--dim);
+  padding: 0 4px;
+}
+
+/* Accent Color Swatches Grid */
+.swatches-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.swatch-btn {
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--trans-fast), border-color var(--trans-fast);
+  padding: 0;
+}
+
+.swatch-btn:active {
+  transform: scale(0.9);
+}
+
+.swatch-btn--active {
+  border-color: var(--tx);
+  transform: scale(1.08);
+}
+
+.swatch-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: #FFFFFF;
+  stroke-width: 3px;
+}
+
+/* Swatch Colors */
+.swatch--red { background-color: #D93C42; }
+.swatch--rose { background-color: #E11D74; }
+.swatch--blue { background-color: #2F6FEB; }
+.swatch--teal { background-color: #0E9F8E; }
+.swatch--violet { background-color: #7C5CFA; }
+.swatch--graphite { background-color: #8E8E93; }
+
+/* Settings Action Rows */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.settings-row__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.settings-row__desc {
+  font-size: 12px;
+  color: var(--dim);
+}

@@ -1,20 +1,26 @@
 /**
- * SETLY PERSISTENCE & REPOSITORY MODULE — V2
- * Local-First, Schema Versioning, Web Crypto Hashing, JSON & CSV Exports
+ * PUSHPA PERSISTENCE & STORAGE MODULE — V5
+ * Local-First, Schema Versioning, Migrations, Web Crypto SHA-256 Hashing
+ * Strictly keeps user data safe across all legacy versions.
  */
 
-export const STORAGE_KEY = "SETLY_LOCAL_V2";
-export const LEGACY_STORAGE_KEY = "SETLY_LOCAL_V1";
-export const SCHEMA_VERSION = 2;
+export const STORAGE_KEY = "PUSHPA_LOCAL_V5";
+export const LEGACY_KEYS = [
+  "PUSHPA_LOCAL_V4",
+  "PUSHPA_LOCAL_V3",
+  "SETLY_LOCAL_V2",
+  "SETLY_LOCAL_V1"
+];
+export const SCHEMA_VERSION = 5;
 
 export async function hashPassword(plainText) {
-  if (!window.crypto || !window.crypto.subtle) {
-    return btoa(plainText);
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+    const msgUint8 = new TextEncoder().encode(plainText);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
-  const msgUint8 = new TextEncoder().encode(plainText);
-  const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return btoa(plainText);
 }
 
 export function getDefaultState() {
@@ -26,59 +32,61 @@ export function getDefaultState() {
       username: "",
       passwordHash: ""
     },
-    setupCompleted: false,
+    // Shared user profile across both modes
     profile: {
-      goal: "muscle", // 'muscle', 'strength', 'fat_loss', 'fitness'
-      programLength: 60, // 30, 60, 90, 180, 360, or custom
-      bodyOutline: "male", // 'male', 'female', 'neutral'
-      prioritizedMuscles: [], // ['chest', 'lats', ...]
-      age: null,
-      sex: "male",
-      heightCm: null,
-      weightKg: null,
-      weightGoalKg: null,
-      unitWeight: "kg",
-      unitHeight: "cm",
-      experience: "intermediate",
-      daysPerWeek: 4,
-      sessionLengthMin: 50,
-      equipmentPreset: "full_gym",
-      availableEquipment: ["barbell", "dumbbells", "cables", "machine", "bodyweight"],
-      limitations: [] // 'knees', 'lower_back', 'shoulders', 'wrists'
+      name: "",
+      age: 25,
+      gender: "male", // 'male' | 'female' | 'other'
+      heightCm: 175,
+      weightKg: 75,
+      unitWeight: "kg", // 'kg' | 'lb'
+      unitHeight: "cm", // 'cm' | 'ft'
+      goal: "muscle",
+      experience: "intermediate"
     },
+    // Shared user preferences
     settings: {
-      accentColor: "#C6FF3D", // electric lime default
-      themeMode: "dark", // 'dark' or 'light'
-      soundEnabled: true,
-      vibrationEnabled: true
+      theme: "dark", // 'dark' | 'light' | 'system'
+      accent: "red", // 'red' | 'rose' | 'blue' | 'teal' | 'violet' | 'graphite'
+      soundLevel: "low", // 'off' | 'low' | 'normal'
+      haptics: true,
+      openLastModeAuto: false
     },
-    currentProgramDay: 1, // 1 to programLength
-    completedDays: [], // array of day numbers: [1, 2, ...]
-    currentWeekIndex: 0,
-    currentSessionIndex: 0,
-    activeWorkout: null,
-    lastCompletedWorkout: null,
-    workoutLogs: [],
-    prs: {
-      barbell_bench_press: { weight: 70, reps: 8, e1rm: 88.7, date: "2026-11-15" },
-      barbell_back_squat: { weight: 90, reps: 6, e1rm: 108.0, date: "2026-11-12" }
+    currentMode: "select", // 'select' | 'planner' | 'logbook'
+    lastIntroTimestamp: 0,
+
+    // MODE 1: AI PLANNER DATA STORE
+    planner: {
+      setupCompleted: false,
+      programLength: 60,
+      currentDay: 1,
+      completedDays: [],
+      daysPerWeek: 4,
+      sessionLengthMin: 45,
+      equipment: "full_gym",
+      limitations: [],
+      activeWorkout: null,
+      workoutLogs: [],
+      prs: {}
     },
-    bodyWeightLogs: [
-      { date: "2026-11-01", weightKg: 76.5 },
-      { date: "2026-11-08", weightKg: 76.0 },
-      { date: "2026-11-15", weightKg: 75.4 }
-    ],
-    todayReadiness: null, // { date, sleep, soreness, energy, score }
-    achievements: {
-      first_workout: null,
-      streak_7: null,
-      first_pr: null,
-      sessions_10: null,
-      sets_100: null
-    },
-    exerciseNotes: {}, // { [exerciseId]: "..." }
-    workoutNotes: {}, // { [sessionId]: "..." }
-    programSchedule: [] // Full day-by-day plan from Day 1 to Day N
+
+    // MODE 2: NOTION-STYLE LOGBOOK DATA STORE
+    logbook: {
+      setupCompleted: false,
+      split: [
+        { day: 1, name: "Push", isRest: false },
+        { day: 2, name: "Pull", isRest: false },
+        { day: 3, name: "Legs", isRest: false },
+        { day: 4, name: "Push", isRest: false },
+        { day: 5, name: "Pull", isRest: false },
+        { day: 6, name: "Legs", isRest: false },
+        { day: 0, name: "Rest", isRest: true }
+      ],
+      weekStartDay: 1, // 1 = Monday
+      logs: [],
+      draft: null,
+      customExercises: []
+    }
   };
 }
 
@@ -86,13 +94,16 @@ export function loadState() {
   try {
     let raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      // Check for legacy v1 state to preserve existing workout progress
-      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (legacyRaw) {
-        raw = legacyRaw;
-      } else {
-        return getDefaultState();
+      for (const legacyKey of LEGACY_KEYS) {
+        const found = localStorage.getItem(legacyKey);
+        if (found) {
+          raw = found;
+          break;
+        }
       }
+    }
+    if (!raw) {
+      return getDefaultState();
     }
     const parsed = JSON.parse(raw);
     return migrateState(parsed);
@@ -110,7 +121,7 @@ export function saveState(state) {
   }
 }
 
-function migrateState(oldState) {
+export function migrateState(oldState) {
   const base = getDefaultState();
   const migrated = {
     ...base,
@@ -122,23 +133,31 @@ function migrateState(oldState) {
     },
     settings: {
       ...base.settings,
-      ...(oldState.settings || {})
+      theme: oldState.settings?.themeMode || oldState.settings?.theme || base.settings.theme,
+      accent: oldState.settings?.accentColor === "#C6FF3D" ? "red" : (oldState.settings?.accent || base.settings.accent),
+      soundLevel: oldState.settings?.soundEnabled === false ? "off" : (oldState.settings?.soundLevel || base.settings.soundLevel),
+      haptics: oldState.settings?.vibrationEnabled !== undefined ? oldState.settings.vibrationEnabled : (oldState.settings?.haptics ?? true),
+      openLastModeAuto: oldState.settings?.openLastModeAuto ?? false
     },
-    achievements: {
-      ...base.achievements,
-      ...(oldState.achievements || {})
+    planner: {
+      ...base.planner,
+      setupCompleted: oldState.setupCompleted ?? (oldState.planner?.setupCompleted ?? false),
+      programLength: oldState.profile?.programLength || oldState.planner?.programLength || 60,
+      currentDay: oldState.currentProgramDay || oldState.planner?.currentDay || 1,
+      completedDays: oldState.completedDays || oldState.planner?.completedDays || [],
+      activeWorkout: oldState.activeWorkout || oldState.planner?.activeWorkout || null,
+      workoutLogs: oldState.workoutLogs || oldState.planner?.workoutLogs || [],
+      prs: oldState.prs || oldState.planner?.prs || {}
     },
-    exerciseNotes: {
-      ...(oldState.exerciseNotes || {})
-    },
-    workoutNotes: {
-      ...(oldState.workoutNotes || {})
+    logbook: {
+      ...base.logbook,
+      ...(oldState.logbook || {})
     }
   };
 
-  // Convert old currentSessionIndex to currentProgramDay if needed
-  if (!migrated.currentProgramDay) {
-    migrated.currentProgramDay = Math.max(1, (migrated.currentSessionIndex || 0) + 1);
+  // Ensure athlete name default if profile has username
+  if (!migrated.profile.name && migrated.auth.username) {
+    migrated.profile.name = migrated.auth.username;
   }
   return migrated;
 }
@@ -148,39 +167,24 @@ export function exportJSON(state) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `SETLY_BACKUP_${new Date().toISOString().split("T")[0]}.json`;
+  a.download = `PUSHPA_BACKUP_${new Date().toISOString().split("T")[0]}.json`;
   a.click();
 }
 
-export function exportCSV(workoutLogs) {
-  if (!workoutLogs || workoutLogs.length === 0) {
-    alert("No workout logs available to export yet.");
-    return;
-  }
-  const headers = ["Date", "SessionName", "Exercise", "SetIndex", "WeightKg", "Reps", "Effort"];
-  const rows = [];
-
-  workoutLogs.forEach(log => {
-    log.exercises?.forEach(ex => {
-      ex.sets?.forEach(s => {
-        rows.push([
-          log.date,
-          `"${log.name}"`,
-          `"${ex.name}"`,
-          s.setIndex,
-          s.weight,
-          s.reps,
-          s.effort || "good"
-        ].join(","));
-      });
-    });
+export function importJSON(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        const migrated = migrateState(parsed);
+        saveState(migrated);
+        resolve(migrated);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("File read error"));
+    reader.readAsText(file);
   });
-
-  const csvContent = [headers.join(","), ...rows].join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `SETLY_WORKOUT_HISTORY_${new Date().toISOString().split("T")[0]}.csv`;
-  a.click();
 }

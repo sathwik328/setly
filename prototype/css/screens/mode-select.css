@@ -1,0 +1,71 @@
+/* ==========================================================================
+   PUSHPA MODE SELECT SCREEN (css/screens/mode-select.css)
+   Layout Contract:
+   EXACTLY two large illustrated cards, stacked and centered.
+   No other text, header, timeline, banner or finish button.
+   ========================================================================== */
+
+.screen--mode-select {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  max-width: 380px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 16px 0;
+}
+
+.mode-card {
+  width: 100%;
+  background-color: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--trans-fast), border-color var(--trans-fast), background-color var(--trans-fast);
+}
+
+.mode-card:active {
+  transform: scale(0.97);
+}
+
+.mode-card:hover {
+  border-color: var(--accent);
+  background-color: var(--s2);
+}
+
+.mode-card__illustration {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mode-card__illustration svg {
+  width: 80px;
+  height: 80px;
+}
+
+.mode-card__title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--tx);
+  letter-spacing: -0.3px;
+  text-align: center;
+}
+
+.mode-card__desc {
+  font-size: 13px;
+  color: var(--dim);
+  text-align: center;
+  line-height: 1.4;
+}

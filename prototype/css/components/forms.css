@@ -1,0 +1,116 @@
+/* ==========================================================================
+   PUSHPA FORMS & INPUTS (css/components/forms.css)
+   Clean, accessible, never white-on-white in any theme or autofill state.
+   ========================================================================== */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.form-input-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.form-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  background-color: var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--tx);
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color var(--trans-fast), background-color var(--trans-fast);
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  background-color: var(--s3);
+}
+
+.form-input::placeholder {
+  color: var(--dim);
+  opacity: 0.7;
+}
+
+.form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Fix browser autofill colors to match dark/light theme */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover, 
+.form-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--tx);
+  -webkit-box-shadow: 0 0 0px 1000px var(--s2) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Inline Action / Toggle button inside input (e.g., eye icon for password) */
+.form-input__action {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dim);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.form-input__action:hover {
+  color: var(--tx);
+}
+
+.form-error {
+  font-size: 12px;
+  color: #EF4444;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Unit selector inside / next to input */
+.input-with-unit {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-unit .form-input {
+  flex: 1;
+}
+
+.input-with-unit .unit-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  background-color: var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}

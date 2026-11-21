@@ -1,12 +1,16 @@
-const CACHE_NAME = "setly-offline-v1";
+const CACHE_NAME = "pushpa-v1-cache";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
+  "./manifest.json",
+  "./css/main.css",
   "./app.js",
+  "./icons.js",
+  "./audio.js",
+  "./moves.js",
+  "./logbook-engine.js",
   "./engine.js",
-  "./storage.js",
-  "./manifest.json"
+  "./storage.js"
 ];
 
 self.addEventListener("install", (e) => {
@@ -29,14 +33,25 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// Network-first for document (index.html) so updates are immediate on deploy
 self.addEventListener("fetch", (e) => {
+  if (e.request.mode === "navigate") {
+    e.respondWith(
+      fetch(e.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          return response;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  // Cache-first for other assets
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      return cachedResponse || fetch(e.request).catch(() => {
-        if (e.request.destination === "document") {
-          return caches.match("./index.html");
-        }
-      });
+      return cachedResponse || fetch(e.request);
     })
   );
 });

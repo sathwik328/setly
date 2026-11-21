@@ -1,12 +1,13 @@
 {
-  "appId": "com.setly.app",
-  "appName": "SETLY",
+  "appId": "com.pushpa.app",
+  "appName": "Pushpa",
   "webDir": "prototype",
   "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https"
   },
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": false,
+    "backgroundColor": "#0B0B0C"
   }
 }
