@@ -1,14 +1,16 @@
-const CACHE_NAME = "pushpa-offline-v4";
+const CACHE_NAME = "pushpa-v1-cache";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
+  "./manifest.json",
+  "./css/main.css",
   "./app.js",
-  "./engine.js",
-  "./storage.js",
-  "./logbook-engine.js",
+  "./icons.js",
+  "./audio.js",
   "./moves.js",
-  "./manifest.json"
+  "./logbook-engine.js",
+  "./engine.js",
+  "./storage.js"
 ];
 
 self.addEventListener("install", (e) => {
@@ -31,25 +33,25 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
-// Network-first with cache fallback
+// Network-first for document (index.html) so updates are immediate on deploy
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
+  if (e.request.mode === "navigate") {
+    e.respondWith(
+      fetch(e.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          return response;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  // Cache-first for other assets
   e.respondWith(
-    fetch(e.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const resClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, resClone));
-        }
-        return networkResponse;
-      })
-      .catch(() => {
-        return caches.match(e.request).then((cached) => {
-          if (cached) return cached;
-          if (e.request.destination === "document") {
-            return caches.match("./index.html");
-          }
-        });
-      })
+    caches.match(e.request).then((cachedResponse) => {
+      return cachedResponse || fetch(e.request);
+    })
   );
 });

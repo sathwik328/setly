@@ -1,0 +1,204 @@
+/* ==========================================================================
+   PUSHPA NOTION-STYLE LOGBOOK (css/screens/logbook.css)
+   Clean, freeform tracking, autocomplete, spark AI suggestion, 
+   display-only 'Last time' lines, and clean table layout.
+   ========================================================================== */
+
+.screen--logbook {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Today's Session Selector Bar */
+.logbook-session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.logbook-session-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+/* Autocomplete Search Input */
+.exercise-search-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.exercise-autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: var(--s1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  z-index: 15;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.autocomplete-item {
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tx);
+  cursor: pointer;
+  border-bottom: 1px solid var(--line);
+}
+
+.autocomplete-item:hover {
+  background-color: var(--s2);
+  color: var(--accent);
+}
+
+/* Exercise Log Block */
+.log-block {
+  background-color: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.log-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.log-block__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.log-block__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Spark Suggestion Icon & Popover */
+.spark-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: var(--s2);
+  border: 1px solid var(--line);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.spark-popover {
+  background-color: var(--s2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-control);
+  padding: 12px;
+  font-size: 13px;
+  color: var(--tx);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fadeIn var(--trans-fast);
+}
+
+/* Display-only 'Last time' Reference Line */
+.last-time-ref {
+  font-size: 12px;
+  color: var(--dim);
+  padding: 6px 10px;
+  background-color: var(--s2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.last-time-ref b {
+  color: var(--tx);
+}
+
+/* Log Set Table */
+.log-table {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log-table__header {
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr 1fr 36px;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--dim);
+  text-align: center;
+}
+
+.log-table__row {
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr 1fr 36px;
+  gap: 6px;
+  align-items: center;
+}
+
+.log-table__input {
+  width: 100%;
+  min-height: 38px;
+  text-align: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  background-color: var(--s2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--tx);
+}
+
+.log-table__delete-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.log-table__delete-btn:hover {
+  color: #EF4444;
+}
+
+/* History Timeline */
+.history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background-color: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}

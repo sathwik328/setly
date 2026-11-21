@@ -1,7 +1,7 @@
 /**
- * PUSHPA APP CONTROLLER — ROUND 4 COMPLETE IMPLEMENTATION
- * Cinematic Fire Intro, Two Modes (AI Planner & Logbook), Guided Home Workouts,
- * Web Audio FX, Offline-first, Capacitor-ready
+ * PUSHPA APPLICATION CONTROLLER — CLEAN REBUILD
+ * Implements Layout Contract, 2 Modes (AI Planner & Logbook), Guided Workouts,
+ * Cinematic Intro, Audio Engine, Zero !important, Single Screen Mounted at a time.
  */
 
 import {
@@ -11,7 +11,6 @@ import {
   saveState,
   exportJSON,
   importJSON,
-  exportCSV,
   hashPassword
 } from "./storage.js";
 
@@ -20,9 +19,6 @@ import {
   calculateE1RM,
   calculatePlates,
   generateWarmupLadder,
-  computeProgression,
-  estimateStartingWeight,
-  generateWeeklyPlan,
   generateFullProgram,
   getExerciseDetails
 } from "./engine.js";
@@ -31,9 +27,7 @@ import {
   DEFAULT_LAYOUT,
   getWeeklySessionQueue,
   getSuggestedSessionForDay,
-  evaluateWeekTransition,
-  suggestionEngine,
-  runMissedDayUnitTests
+  getExerciseSuggestion
 } from "./logbook-engine.js";
 
 import {
@@ -41,1199 +35,1867 @@ import {
   GUIDED_ROUTINES
 } from "./moves.js";
 
+import { Icons } from "./icons.js";
+import "./audio.js";
+
 // Global Persistent Application State
 let state = loadState();
 
-// Global Runtime State
-let deferredPrompt = null;
-let liveWorkoutInterval = null;
-let liveWorkoutStartTime = 0;
-let audioCtx = null;
-let isAudioMuted = !state.settings.soundEnabled;
-let emberAnimationId = null;
-let guidedActiveRoutine = null;
-let guidedMoveIndex = 0;
-let guidedTimerInterval = null;
-let guidedTimeRemaining = 0;
-let guidedTotalElapsedSeconds = 0;
+// Active Runtime & Timer References for Safe Cleanup
+let currentScreen = null;
+let screenTimers = [];
+let liveWorkoutTimer = null;
+let restTimer = null;
+let guidedTimer = null;
 
-// DOM Helper shortcuts
-const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+// DOM Shortcuts
+const $ = (sel, parent = document) => parent.querySelector(sel);
+const $$ = (sel, parent = document) => [...parent.querySelectorAll(sel)];
+
+function clearAllTimers() {
+  screenTimers.forEach(t => clearTimeout(t));
+  screenTimers = [];
+  if (liveWorkoutTimer) { clearInterval(liveWorkoutTimer); liveWorkoutTimer = null; }
+  if (restTimer) { clearInterval(restTimer); restTimer = null; }
+  if (guidedTimer) { clearInterval(guidedTimer); guidedTimer = null; }
+}
+
+function addScreenTimer(t) {
+  screenTimers.push(t);
+  return t;
+}
 
 /* ==========================================================================
-   AUDIO SYNTHESIZER (Pure Web Audio API — No audio files)
+   THEME, ACCENT & KEYBOARD INITIALIZATION
    ========================================================================== */
 
-function wakeAudio() {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-  } catch (e) {
-    console.log("AudioContext init skipped", e);
-  }
-}
+function applyThemeAndAccent() {
+  const root = document.documentElement;
+  const theme = state.settings.theme || "dark";
+  const accent = state.settings.accent || "red";
 
-function tone(freq, startDelay, duration, gainVal = 0.08, type = "sine") {
-  if (isAudioMuted || !audioCtx) return;
-  try {
-    const osc = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    const now = audioCtx.currentTime + startDelay;
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-    gainNode.gain.setValueAtTime(0, now);
-    gainNode.gain.linearRampToValueAtTime(gainVal, now + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-    osc.connect(gainNode).connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + duration + 0.05);
-  } catch (e) {}
-}
-
-function noiseBurst(startDelay, duration, gainVal = 0.04, bandFreq = 800) {
-  if (isAudioMuted || !audioCtx) return;
-  try {
-    const bufferSize = audioCtx.sampleRate * duration;
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-    const noise = audioCtx.createBufferSource();
-    noise.buffer = buffer;
-
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.setValueAtTime(bandFreq, audioCtx.currentTime + startDelay);
-
-    const gain = audioCtx.createGain();
-    const now = audioCtx.currentTime + startDelay;
-    gain.gain.setValueAtTime(gainVal, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-    noise.connect(filter).connect(gain).connect(audioCtx.destination);
-    noise.start(now);
-  } catch (e) {}
-}
-
-function fireWhooshAudio() {
-  if (isAudioMuted || !audioCtx) return;
-  try {
-    const now = audioCtx.currentTime;
-
-    // 1. Deep rumble sub-bass
-    const subOsc = audioCtx.createOscillator();
-    const subGain = audioCtx.createGain();
-    subOsc.type = "sine";
-    subOsc.frequency.setValueAtTime(45, now);
-    subOsc.frequency.exponentialRampToValueAtTime(80, now + 0.4);
-    subOsc.frequency.exponentialRampToValueAtTime(35, now + 1.2);
-    subGain.gain.setValueAtTime(0, now);
-    subGain.gain.linearRampToValueAtTime(0.18, now + 0.15);
-    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
-    subOsc.connect(subGain).connect(audioCtx.destination);
-    subOsc.start(now);
-    subOsc.stop(now + 1.25);
-
-    // 2. Whoosh noise sweep (bandpass sweep)
-    const bufferSize = Math.floor(audioCtx.sampleRate * 1.8);
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-    const noise = audioCtx.createBufferSource();
-    noise.buffer = buffer;
-
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.Q.value = 2.0;
-    filter.frequency.setValueAtTime(180, now);
-    filter.frequency.exponentialRampToValueAtTime(1300, now + 0.55); // fire rises to peak
-    filter.frequency.exponentialRampToValueAtTime(140, now + 1.5); // fire recedes
-
-    const noiseGain = audioCtx.createGain();
-    noiseGain.gain.setValueAtTime(0, now);
-    noiseGain.gain.linearRampToValueAtTime(0.12, now + 0.35);
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
-
-    noise.connect(filter).connect(noiseGain).connect(audioCtx.destination);
-    noise.start(now);
-
-    // 3. Crackle bursts as it recedes
-    [0.8, 1.0, 1.2, 1.4].forEach(t => {
-      noiseBurst(t, 0.12, 0.03, 1400 + Math.random() * 600);
-    });
-  } catch (e) {}
-}
-
-export const S = {
-  tap: () => tone(520, 0, 0.06, 0.04),
-  tab: () => tone(620, 0, 0.08, 0.04),
-  open: () => { tone(420, 0, 0.08, 0.04); tone(620, 0.06, 0.1, 0.04); },
-  done: () => {
-    tone(620, 0, 0.1, 0.07);
-    tone(820, 0.08, 0.1, 0.07);
-    tone(1240, 0.16, 0.25, 0.08);
-  },
-  lock: () => tone(160, 0, 0.18, 0.08, "triangle"),
-  thump: () => tone(80, 0, 0.14, 0.12, "triangle"),
-  fireWoosh: () => fireWhooshAudio()
-};
-
-/* ==========================================================================
-   INITIALIZATION
-   ========================================================================== */
-
-document.addEventListener("DOMContentLoaded", () => {
-  initApp();
-});
-
-function initApp() {
-  initAudioControls();
-  initEmberParticles();
-  initFireIntro();
-  initModeSwitcher();
-  initNavigation();
-  initAuthEvents();
-  initBackupRestore();
-  initLogbookEvents();
-  initGuidedPlayer();
-  initPlannerEvents();
-
-  // Run missed-day unit tests in background to confirm math
-  runMissedDayUnitTests();
-
-  // Check backup reminder
-  checkBackupReminder();
-
-  // Screen routing check
-  if (!state.auth.isLoggedIn && !state.auth.isGuest) {
-    switchScreen("s-auth");
+  if (theme === "system") {
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.setAttribute("data-theme", prefersDark ? "dark" : "light");
   } else {
-    applyModeUI(state.activeMode || "planner");
+    root.setAttribute("data-theme", theme);
+  }
+
+  root.setAttribute("data-accent", accent);
+
+  const themeMeta = $('meta[name="theme-color"]');
+  if (themeMeta) {
+    themeMeta.content = root.getAttribute("data-theme") === "light" ? "#F7F6F4" : "#0B0B0C";
+  }
+
+  if (window.pushpaAudio) {
+    window.pushpaAudio.setLevel(state.settings.soundLevel || "low");
   }
 }
 
-function initAudioControls() {
-  const sndBtn = $("#snd");
-  const sw = $("#sw");
-
-  isAudioMuted = !state.settings.soundEnabled;
-  if (sw) sw.style.opacity = isAudioMuted ? 0 : 1;
-
-  window.addEventListener("pointerdown", () => {
-    wakeAudio();
-  }, { once: true, passive: true });
-
-  if (sndBtn) {
-    sndBtn.onclick = (e) => {
-      e.stopPropagation();
-      wakeAudio();
-      isAudioMuted = !isAudioMuted;
-      state.settings.soundEnabled = !isAudioMuted;
-      saveState(state);
-      if (sw) sw.style.opacity = isAudioMuted ? 0 : 1;
-      if (!isAudioMuted) S.tap();
-    };
-  }
+// VisualViewport Keyboard Handler to hide nav
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", () => {
+    const isKeyboard = window.visualViewport.height < window.innerHeight * 0.75;
+    document.body.classList.toggle("keyboard-open", isKeyboard);
+  });
 }
 
 /* ==========================================================================
-   CINEMATIC FIRE INTRO (Section 2)
+   OVERLAY ROOT HELPERS (Sheets, Modals, Toasts)
    ========================================================================== */
 
-function initEmberParticles() {
-  const canvas = $("#ember-canvas");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  
-  const resize = () => {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-  };
-  resize();
+const overlayRoot = $("#overlay-root");
 
-  const particleCount = 45;
-  const particles = Array.from({ length: particleCount }, () => ({
-    x: Math.random() * canvas.width,
-    y: canvas.height + Math.random() * 80,
-    size: Math.random() * 2.8 + 1,
-    speedY: Math.random() * 1.8 + 0.8,
-    speedX: (Math.random() - 0.5) * 1.2,
-    opacity: Math.random() * 0.8 + 0.2,
-    hue: Math.random() > 0.4 ? 25 : 12 // Orange or Red
-  }));
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particles.forEach(p => {
-      p.y -= p.speedY;
-      p.x += p.speedX;
-      p.opacity -= 0.003;
-
-      if (p.y < 0 || p.opacity <= 0) {
-        p.y = canvas.height + 10;
-        p.x = Math.random() * canvas.width;
-        p.opacity = Math.random() * 0.8 + 0.2;
-      }
-
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${p.hue}, 100%, 55%, ${p.opacity})`;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = "#FF6A00";
-      ctx.fill();
-    });
-
-    emberAnimationId = requestAnimationFrame(draw);
-  }
-  draw();
+function closeOverlay() {
+  overlayRoot.innerHTML = "";
 }
 
-function initFireIntro() {
-  const splash = $("#fire-splash");
-  const skipBtn = $("#btn-skip-intro");
-  if (!splash) return;
-
-  let isDismissed = false;
-  const dismiss = () => {
-    if (isDismissed) return;
-    isDismissed = true;
-    cancelAnimationFrame(emberAnimationId);
-    splash.classList.add("out");
-    sessionStorage.setItem("PUSHPA_INTRO_SEEN", "true");
-    state.lastActiveTimestamp = Date.now();
-    saveState(state);
-  };
-
-  skipBtn?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    dismiss();
+function showSheet({ title, contentHtml, onRender }) {
+  closeOverlay();
+  const backdrop = document.createElement("div");
+  backdrop.className = "sheet-backdrop";
+  backdrop.innerHTML = `
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet__handle"></div>
+      <div class="sheet__header">
+        <h3 class="sheet__title">${title}</h3>
+        <button class="btn btn--ghost btn--icon" id="sheet-close-btn" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="sheet__body">
+        ${contentHtml}
+      </div>
+    </div>
+  `;
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeOverlay();
   });
-  splash.addEventListener("click", dismiss);
+  overlayRoot.appendChild(backdrop);
+  const closeBtn = $("#sheet-close-btn", backdrop);
+  if (closeBtn) closeBtn.onclick = closeOverlay;
+  if (onRender) onRender(backdrop);
+}
 
-  // Play realistic fire whoosh sound when fire surges
+function showModal({ title, desc, confirmText = "Confirm", cancelText = "Cancel", onConfirm }) {
+  closeOverlay();
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop";
+  backdrop.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3 class="modal__title">${title}</h3>
+      <p class="modal__desc">${desc}</p>
+      <div class="modal__actions">
+        <button class="btn btn--secondary btn--sm" id="modal-cancel-btn">${cancelText}</button>
+        <button class="btn btn--primary btn--sm" id="modal-confirm-btn">${confirmText}</button>
+      </div>
+    </div>
+  `;
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeOverlay();
+  });
+  overlayRoot.appendChild(backdrop);
+  $("#modal-cancel-btn", backdrop).onclick = closeOverlay;
+  $("#modal-confirm-btn", backdrop).onclick = () => {
+    closeOverlay();
+    if (onConfirm) onConfirm();
+  };
+}
+
+function showToast(message) {
+  let container = $(".toast-container", overlayRoot);
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "toast-container";
+    overlayRoot.appendChild(container);
+  }
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <span>${message}</span>
+  `;
+  container.appendChild(toast);
   setTimeout(() => {
-    wakeAudio();
-    S.fireWoosh();
-  }, 250);
-
-  // Letter slam thumps as letters appear after fire recedes
-  [2100, 2250, 2400, 2550, 2750, 2950, 3100].forEach(delay => {
-    setTimeout(() => S.thump(), delay);
-  });
-
-  // Timeline:
-  // 0.0s - 2.1s: Fire surges from bottom & recedes
-  // 2.1s - 3.3s: PUSH-PA wordmark & tagline reveal
-  // 3.3s - 5.0s: PAUSE for 1.7s so user clearly sees the full name
-  // 5.1s: Smooth fade-out into app
-  setTimeout(dismiss, 5100);
+    toast.remove();
+    if (container.children.length === 0) container.remove();
+  }, 2800);
 }
 
 /* ==========================================================================
-   HOMEPAGE & MODE SELECTOR (AI PLANNER vs LOGBOOK)
+   ROUTER & SCREEN MOUNT SYSTEM
    ========================================================================== */
 
-function initModeSwitcher() {
-  const plannerCard = $("#mode-card-planner");
-  const logbookCard = $("#mode-card-logbook");
+const contentEl = $("#app-content");
+const headerLeftEl = $("#header-left");
+const headerRightEl = $("#header-right");
+const navEl = $("#main-nav");
 
-  plannerCard?.addEventListener("click", () => {
-    applyModeUI("planner");
-    S.open();
-  });
-
-  logbookCard?.addEventListener("click", () => {
-    applyModeUI("logbook");
-    S.open();
-  });
-
-  // Top header mode switch button opens mode select
-  $("#btn-header-mode-toggle")?.addEventListener("click", () => {
-    switchScreen("s-mode-select");
-    S.open();
-  });
-
-  // Profile mode change button opens mode select
-  $("#btn-profile-change-mode")?.addEventListener("click", () => {
-    switchScreen("s-mode-select");
-    S.open();
-  });
-
-  // Logo home click opens mode select
-  $("#brand-home-link")?.addEventListener("click", () => {
-    switchScreen("s-mode-select");
-    S.open();
-  });
+function setHeader({ title, brand = false, showBack = false, onBack, actionsHtml = "" }) {
+  if (brand) {
+    headerLeftEl.innerHTML = `
+      <div class="app-header__brand" id="brand-home-btn">
+        ${Icons.flameLogo(24)}
+        <div class="intro__wordmark" style="font-size: 20px;">PUSH<span class="intro__dash" style="width: 14px; height: 4px;"></span>PA</div>
+      </div>
+    `;
+    const brandBtn = $("#brand-home-btn", headerLeftEl);
+    if (brandBtn) brandBtn.onclick = () => mountModeSelect();
+  } else if (showBack) {
+    headerLeftEl.innerHTML = `
+      <button class="btn btn--ghost btn--icon" id="hdr-back-btn" aria-label="Go Back">
+        ${Icons.back}
+      </button>
+      <h2 class="app-header__title">${title || ""}</h2>
+    `;
+    const backBtn = $("#hdr-back-btn", headerLeftEl);
+    if (backBtn) backBtn.onclick = onBack || (() => window.history.back());
+  } else {
+    headerLeftEl.innerHTML = `<h2 class="app-header__title">${title || ""}</h2>`;
+  }
+  headerRightEl.innerHTML = actionsHtml;
 }
 
-function applyModeUI(mode) {
-  state.activeMode = mode;
-  saveState(state);
-
-  const headerLabel = $("#header-mode-label");
-  if (headerLabel) {
-    headerLabel.textContent = mode === "planner" ? "⚡ AI Planner" : "📝 Logbook";
+function setNav(mode, activeTab = "") {
+  if (!mode || ["auth", "about", "mode-select", "live-workout", "guided"].includes(mode)) {
+    navEl.style.display = "none";
+    navEl.innerHTML = "";
+    return;
   }
-
-  const profileModeLabel = $("#profile-current-mode-label");
-  if (profileModeLabel) {
-    profileModeLabel.textContent = mode === "planner" ? "Currently: AI Planner" : "Currently: Workout Logbook";
-  }
-
-  const plannerViews = $("#mode-planner-views");
-  const logbookViews = $("#mode-logbook-views");
+  navEl.style.display = "grid";
 
   if (mode === "planner") {
-    plannerViews?.classList.remove("hidden");
-    logbookViews?.classList.add("hidden");
-    renderPlannerToday();
-    renderPlanTab();
-    switchScreen("s-today");
-  } else {
-    plannerViews?.classList.add("hidden");
-    logbookViews?.classList.remove("hidden");
-    renderLogbookToday();
-    renderLogbookReports();
-    switchScreen("s-logbook-today");
+    navEl.setAttribute("data-tabs", "4");
+    navEl.innerHTML = `
+      <button class="app-nav__tab ${activeTab === 'today' ? 'app-nav__tab--active' : ''}" id="nav-p-today">
+        ${Icons.today}
+        <span>Today</span>
+      </button>
+      <button class="app-nav__tab ${activeTab === 'plan' ? 'app-nav__tab--active' : ''}" id="nav-p-plan">
+        ${Icons.plan}
+        <span>Plan</span>
+      </button>
+      <button class="app-nav__tab ${activeTab === 'progress' ? 'app-nav__tab--active' : ''}" id="nav-p-progress">
+        ${Icons.progress}
+        <span>Progress</span>
+      </button>
+      <button class="app-nav__tab ${activeTab === 'profile' ? 'app-nav__tab--active' : ''}" id="nav-p-profile">
+        ${Icons.profile}
+        <span>Profile</span>
+      </button>
+    `;
+    $("#nav-p-today").onclick = () => mountPlannerToday();
+    $("#nav-p-plan").onclick = () => mountPlannerPlan();
+    $("#nav-p-progress").onclick = () => mountPlannerProgress();
+    $("#nav-p-profile").onclick = () => mountSettings("planner");
+  } else if (mode === "logbook") {
+    navEl.setAttribute("data-tabs", "4");
+    navEl.innerHTML = `
+      <button class="app-nav__tab ${activeTab === 'log' ? 'app-nav__tab--active' : ''}" id="nav-l-log">
+        ${Icons.log}
+        <span>Log</span>
+      </button>
+      <button class="app-nav__tab ${activeTab === 'history' ? 'app-nav__tab--active' : ''}" id="nav-l-history">
+        ${Icons.history}
+        <span>History</span>
+      </button>
+      <button class="app-nav__tab ${activeTab === 'reports' ? 'app-nav__tab--active' : ''}" id="nav-l-reports">
+        ${Icons.reports}
+        <span>Reports</span>
+      </button>
+      <button class="app-nav__tab ${activeTab === 'settings' ? 'app-nav__tab--active' : ''}" id="nav-l-settings">
+        ${Icons.settings}
+        <span>Settings</span>
+      </button>
+    `;
+    $("#nav-l-log").onclick = () => mountLogbookLog();
+    $("#nav-l-history").onclick = () => mountLogbookHistory();
+    $("#nav-l-reports").onclick = () => mountLogbookReports();
+    $("#nav-l-settings").onclick = () => mountSettings("logbook");
   }
+}
 
-  // Update bottom tab buttons active state
-  $$("#tabs button").forEach(t => t.classList.toggle("on", t.getAttribute("data-t") === "today"));
+function mountScreen(screenName, renderFn) {
+  clearAllTimers();
+  closeOverlay();
+  currentScreen = screenName;
+  contentEl.scrollTop = 0;
+  contentEl.innerHTML = "";
+
+  const container = document.createElement("div");
+  container.className = `screen screen--${screenName}`;
+  contentEl.appendChild(container);
+
+  renderFn(container);
 }
 
 /* ==========================================================================
-   NAVIGATION & SCREEN MANAGEMENT
+   MILESTONE 2: CINEMATIC INTRO ANIMATION
    ========================================================================== */
 
-function switchScreen(screenId) {
-  $$(".scr").forEach(s => s.classList.remove("on"));
-  const target = $(`#${screenId}`);
-  if (target) target.classList.add("on");
+function checkAndRunIntro(onFinish) {
+  const now = Date.now();
+  const twelveHours = 12 * 60 * 60 * 1000;
+  const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const isAuthOrSelect = screenId === "s-auth" || screenId === "s-mode-select" || screenId === "s-onboarding";
-  const headerNav = $("#main-top-nav");
-  const bottomNav = $("#tabs");
-  const appContainer = $("#app");
-
-  if (isAuthOrSelect) {
-    headerNav?.classList.add("hidden");
-    bottomNav?.classList.add("hidden");
-    if (appContainer) appContainer.style.top = "0";
-  } else {
-    headerNav?.classList.remove("hidden");
-    bottomNav?.classList.remove("hidden");
-    if (appContainer) appContainer.style.top = "var(--header-height)";
+  if (state.lastIntroTimestamp && (now - state.lastIntroTimestamp < twelveHours)) {
+    onFinish();
+    return;
   }
-}
 
-function initNavigation() {
-  const tabs = $$("#tabs button");
-  tabs.forEach(btn => {
-    btn.onclick = () => {
-      tabs.forEach(t => t.classList.toggle("on", t === btn));
-      const targetTab = btn.getAttribute("data-t");
+  // Update timestamp
+  state.lastIntroTimestamp = now;
+  saveState(state);
 
-      if (state.activeMode === "logbook") {
-        if (targetTab === "today" || targetTab === "plan") {
-          switchScreen("s-logbook-today");
-          renderLogbookToday();
-        } else if (targetTab === "prog") {
-          switchScreen("s-logbook-reports");
-          renderLogbookReports();
-        } else {
-          switchScreen("s-profile");
-        }
-      } else {
-        switchScreen(`s-${targetTab}`);
-        if (targetTab === "today") renderPlannerToday();
-        else if (targetTab === "plan") renderPlanTab();
-        else if (targetTab === "prog") renderPlannerProgress();
+  const intro = document.createElement("div");
+  intro.className = "intro-overlay";
+  intro.innerHTML = `
+    <canvas class="intro__canvas" id="intro-canvas"></canvas>
+    <div class="intro__flame-stage">
+      ${Icons.flameLogo(180)}
+    </div>
+    <div class="intro__brand">
+      <div class="intro__wordmark">
+        <span>PUSH</span>
+        <span class="intro__dash"></span>
+        <span>PA</span>
+      </div>
+      <p class="intro__tagline">Train. Track. Burn.</p>
+    </div>
+    <div class="intro__skip">Tap anywhere to skip</div>
+  `;
+
+  overlayRoot.appendChild(intro);
+
+  // Play audio whoosh
+  if (window.pushpaAudio) {
+    window.pushpaAudio.playIntroWhoosh();
+  }
+
+  // Canvas Ember Particles
+  const canvas = $("#intro-canvas", intro);
+  const ctx = canvas.getContext("2d");
+  let animId = null;
+  const particles = [];
+  const pCount = window.innerWidth < 400 ? 25 : 50;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+
+  for (let i = 0; i < pCount; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: canvas.height + Math.random() * 80,
+      size: Math.random() * 2.5 + 1,
+      speedY: Math.random() * 1.5 + 0.8,
+      speedX: (Math.random() - 0.5) * 0.8,
+      opacity: Math.random() * 0.7 + 0.3
+    });
+  }
+
+  function drawEmbers() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      ctx.fillStyle = `rgba(255, 106, 0, ${p.opacity})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      p.y -= p.speedY;
+      p.x += p.speedX;
+      if (p.y < 0) {
+        p.y = canvas.height + 10;
+        p.x = Math.random() * canvas.width;
       }
-      S.tab();
-    };
-  });
-}
+    });
+    animId = requestAnimationFrame(drawEmbers);
+  }
+  if (!isReduced) drawEmbers();
 
-function initAuthEvents() {
-  $("#btn-guest-login")?.addEventListener("click", () => {
-    state.auth.isLoggedIn = true;
-    state.auth.isGuest = true;
-    state.auth.username = "Guest Athlete";
-    saveState(state);
-    S.open();
-    switchScreen("s-mode-select");
-  });
+  let finished = false;
+  function finishIntro() {
+    if (finished) return;
+    finished = true;
+    if (animId) cancelAnimationFrame(animId);
+    intro.classList.add("intro-overlay--fading");
+    setTimeout(() => {
+      intro.remove();
+      onFinish();
+    }, 450);
+  }
 
-  $("#auth-form")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const u = $("#auth-username")?.value.trim();
-    const p = $("#auth-password")?.value;
-    if (!u || !p) return;
+  // Tap anywhere to skip
+  intro.onclick = finishIntro;
 
-    state.auth.isLoggedIn = true;
-    state.auth.isGuest = false;
-    state.auth.username = u;
-    state.auth.passwordHash = await hashPassword(p);
-    saveState(state);
-    S.open();
-    switchScreen("s-mode-select");
-  });
+  // Auto transition after ~4.8s (or 1.5s on reduced motion)
+  setTimeout(finishIntro, isReduced ? 1500 : 4800);
 }
 
 /* ==========================================================================
-   LOGBOOK ENGINE & NOTION-STYLE UI (Section 5)
+   MILESTONE 3: AUTH, ABOUT YOU, MODE SELECT & SETTINGS
    ========================================================================== */
 
-let activeDailyLog = null;
+function mountAuth() {
+  setHeader({ brand: true });
+  setNav(null);
 
-function renderLogbookToday() {
-  const container = $("#log-exercise-blocks-container");
-  if (!container) return;
+  mountScreen("auth", (container) => {
+    let isSignUp = false;
 
-  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-  const now = new Date();
-  const currentDayKey = dayKeys[now.getDay()];
+    container.innerHTML = `
+      <div class="auth-hero">
+        <div class="auth-hero__logo">
+          ${Icons.flameLogo(56)}
+        </div>
+        <h1 class="auth-hero__title">Welcome to PUSHPA</h1>
+        <p class="auth-hero__tagline">Train. Track. Burn.</p>
+      </div>
 
-  // Missed-day weekly queue check
-  const suggested = getSuggestedSessionForDay(
-    state.logbook.layout || DEFAULT_LAYOUT,
-    state.logbook.completedSessionsInWeek || [],
-    currentDayKey
-  );
+      <div class="auth-card">
+        <div class="card__header">
+          <h3 class="card__title" id="auth-title">Log In to Your Plan</h3>
+          <button class="btn btn--secondary btn--sm" id="auth-toggle-mode">Sign Up</button>
+        </div>
 
-  $("#log-date-label").textContent = `Today • ${dayNames[now.getDay()]}`;
-  $("#log-suggested-session-name").textContent = suggested.sessionName;
+        <form id="auth-form" onsubmit="return false;" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="auth-user">Username or Email</label>
+            <input type="text" id="auth-user" class="form-input" placeholder="e.g. sathwik" required autocomplete="username">
+            <div class="form-error" id="auth-user-err" style="display:none;"></div>
+          </div>
 
-  // Initialize today's working session in memory if not set
-  if (!activeDailyLog) {
-    activeDailyLog = {
-      date: now.toISOString().split("T")[0],
-      sessionName: suggested.sessionName,
-      exercises: []
+          <div class="form-group">
+            <label class="form-label" for="auth-pass">Password</label>
+            <div class="form-input-wrap">
+              <input type="password" id="auth-pass" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+              <button type="button" class="form-input__action" id="auth-eye-btn" aria-label="Toggle password visibility">
+                ${Icons.eye}
+              </button>
+            </div>
+            <div class="form-error" id="auth-pass-err" style="display:none;"></div>
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--block" id="auth-submit-btn">Log In</button>
+        </form>
+
+        <div class="auth-card__divider">
+          <div class="auth-card__divider-line"></div>
+          <span class="auth-card__divider-text">OR</span>
+          <div class="auth-card__divider-line"></div>
+        </div>
+
+        <button type="button" class="btn btn--secondary btn--block" id="auth-guest-btn">
+          Continue as Guest (Instant Access)
+        </button>
+      </div>
+    `;
+
+    const titleEl = $("#auth-title", container);
+    const toggleBtn = $("#auth-toggle-mode", container);
+    const formEl = $("#auth-form", container);
+    const userInput = $("#auth-user", container);
+    const passInput = $("#auth-pass", container);
+    const eyeBtn = $("#auth-eye-btn", container);
+    const userErr = $("#auth-user-err", container);
+    const passErr = $("#auth-pass-err", container);
+    const submitBtn = $("#auth-submit-btn", container);
+    const guestBtn = $("#auth-guest-btn", container);
+
+    let passwordVisible = false;
+    eyeBtn.onclick = () => {
+      passwordVisible = !passwordVisible;
+      passInput.type = passwordVisible ? "text" : "password";
+      eyeBtn.innerHTML = passwordVisible ? Icons.eyeOff : Icons.eye;
     };
-  }
 
-  renderExerciseBlocks();
+    toggleBtn.onclick = () => {
+      isSignUp = !isSignUp;
+      titleEl.textContent = isSignUp ? "Create Your Account" : "Log In to Your Plan";
+      submitBtn.textContent = isSignUp ? "Create Account" : "Log In";
+      toggleBtn.textContent = isSignUp ? "Sign In" : "Sign Up";
+      userErr.style.display = "none";
+      passErr.style.display = "none";
+    };
 
-  // Change Session Badge
-  $("#btn-change-log-session").onclick = () => {
-    const customName = prompt("Enter session type (e.g. Push, Pull, Legs, Arms, Core):", activeDailyLog.sessionName);
-    if (customName) {
-      activeDailyLog.sessionName = customName;
-      $("#log-suggested-session-name").textContent = customName;
-      S.tap();
-    }
-  };
+    formEl.onsubmit = async () => {
+      const u = userInput.value.trim();
+      const p = passInput.value;
+      userErr.style.display = "none";
+      passErr.style.display = "none";
 
-  // Rest Today Button
-  $("#btn-log-rest-today").onclick = () => {
-    if (confirm("Mark today as Rest? Your week queue will remain intact.")) {
-      activeDailyLog.sessionName = "Rest";
-      activeDailyLog.exercises = [];
+      if (isSignUp) {
+        if (u.length < 3) {
+          userErr.textContent = "Username must be at least 3 characters.";
+          userErr.style.display = "block";
+          return;
+        }
+        if (p.length < 6) {
+          passErr.textContent = "Password must be at least 6 characters.";
+          passErr.style.display = "block";
+          return;
+        }
+        const pHash = await hashPassword(p);
+        state.auth = {
+          isLoggedIn: true,
+          isGuest: false,
+          username: u,
+          passwordHash: pHash
+        };
+        if (!state.profile.name) state.profile.name = u;
+        saveState(state);
+        showToast("Account created successfully!");
+        mountAbout();
+      } else {
+        // Sign In
+        if (!u || !p) return;
+        const pHash = await hashPassword(p);
+        if (state.auth.username && state.auth.username.toLowerCase() === u.toLowerCase() && state.auth.passwordHash === pHash) {
+          state.auth.isLoggedIn = true;
+          state.auth.isGuest = false;
+          saveState(state);
+          showToast(`Welcome back, ${state.profile.name || u}!`);
+          routeAfterAuth();
+        } else {
+          passErr.textContent = "Wrong username or password.";
+          passErr.style.display = "block";
+        }
+      }
+    };
+
+    guestBtn.onclick = () => {
+      state.auth = {
+        isLoggedIn: true,
+        isGuest: true,
+        username: "Guest",
+        passwordHash: ""
+      };
+      if (!state.profile.name) state.profile.name = "Athlete";
       saveState(state);
-      S.tap();
-      alert("Rest day recorded. Rest up and recover!");
-    }
-  };
+      showToast("Signed in as Guest");
+      mountAbout();
+    };
+  });
+}
 
-  // Autocomplete & Add Exercise
-  const addInput = $("#input-add-exercise-name");
-  const dropdown = $("#log-autocomplete-dropdown");
+function routeAfterAuth() {
+  if (!state.profile.name || !state.profile.heightCm || !state.profile.weightKg) {
+    mountAbout();
+  } else if (state.settings.openLastModeAuto && state.currentMode === "planner") {
+    mountPlannerToday();
+  } else if (state.settings.openLastModeAuto && state.currentMode === "logbook") {
+    mountLogbookLog();
+  } else {
+    mountModeSelect();
+  }
+}
 
-  if (addInput && dropdown) {
-    addInput.oninput = () => {
-      const val = addInput.value.trim().toLowerCase();
-      if (!val) {
-        dropdown.classList.add("hidden");
+function mountAbout() {
+  setHeader({ title: "About You" });
+  setNav(null);
+
+  mountScreen("about", (container) => {
+    let gender = state.profile.gender || "male";
+    let unitH = state.profile.unitHeight || "cm";
+    let unitW = state.profile.unitWeight || "kg";
+
+    container.innerHTML = `
+      <div class="about-header">
+        <h1 class="about-header__title">About You</h1>
+        <p class="about-header__subtitle">Your vitals tailor progression & calorie estimation.</p>
+      </div>
+
+      <div class="about-card">
+        <div class="form-group">
+          <label class="form-label" for="about-name">Your Name</label>
+          <input type="text" id="about-name" class="form-input" placeholder="e.g. Sathwik" value="${state.profile.name || ''}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="about-age">Age</label>
+          <input type="number" id="about-age" class="form-input tabular-num" placeholder="e.g. 24" value="${state.profile.age || ''}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Gender</label>
+          <div class="segmented-control" id="gender-segmented">
+            <button type="button" class="segmented-control__item ${gender === 'male' ? 'segmented-control__item--active' : ''}" data-val="male">Male</button>
+            <button type="button" class="segmented-control__item ${gender === 'female' ? 'segmented-control__item--active' : ''}" data-val="female">Female</button>
+            <button type="button" class="segmented-control__item ${gender === 'other' ? 'segmented-control__item--active' : ''}" data-val="other">Other</button>
+          </div>
+        </div>
+
+        <div class="about-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="about-height">Height (${unitH})</label>
+            <input type="number" id="about-height" class="form-input tabular-num" placeholder="${unitH === 'cm' ? '178' : '5.10'}" value="${state.profile.heightCm || ''}" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="about-weight">Weight (${unitW})</label>
+            <input type="number" id="about-weight" class="form-input tabular-num" placeholder="${unitW === 'kg' ? '74' : '163'}" value="${state.profile.weightKg || ''}" required>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn--primary btn--block" id="about-continue-btn" style="margin-top: 8px;">
+          Continue
+        </button>
+      </div>
+    `;
+
+    $$("#gender-segmented .segmented-control__item", container).forEach(btn => {
+      btn.onclick = () => {
+        $$("#gender-segmented .segmented-control__item", container).forEach(b => b.classList.remove("segmented-control__item--active"));
+        btn.classList.add("segmented-control__item--active");
+        gender = btn.getAttribute("data-val");
+      };
+    });
+
+    $("#about-continue-btn", container).onclick = () => {
+      const name = $("#about-name", container).value.trim();
+      const age = parseInt($("#about-age", container).value) || 24;
+      const height = parseFloat($("#about-height", container).value) || 175;
+      const weight = parseFloat($("#about-weight", container).value) || 72;
+
+      if (!name) {
+        showToast("Please enter your name.");
         return;
       }
 
-      const matches = EXERCISE_LIBRARY.filter(e => e.name.toLowerCase().includes(val)).slice(0, 5);
-      if (matches.length === 0) {
-        dropdown.innerHTML = `<div class="autocomplete-item" id="btn-create-custom-ex">+ Add "${addInput.value}" as custom move</div>`;
-      } else {
-        dropdown.innerHTML = matches.map(m => `<div class="autocomplete-item" data-name="${m.name}">${m.name}</div>`).join("");
-      }
-      dropdown.classList.remove("hidden");
+      state.profile.name = name;
+      state.profile.age = age;
+      state.profile.gender = gender;
+      state.profile.heightCm = height;
+      state.profile.weightKg = weight;
+      saveState(state);
 
-      $$(".autocomplete-item", dropdown).forEach(item => {
-        item.onclick = () => {
-          const name = item.getAttribute("data-name") || addInput.value.trim();
-          addExerciseToDailyLog(name);
-          addInput.value = "";
-          dropdown.classList.add("hidden");
-        };
-      });
+      showToast("Profile vitals saved!");
+      mountModeSelect();
     };
-  }
-
-  // Finish Session & Save
-  $("#btn-finish-logbook-session").onclick = () => {
-    finishLogbookSession();
-  };
-}
-
-function addExerciseToDailyLog(name) {
-  activeDailyLog.exercises.push({
-    name,
-    sets: [
-      { weight: "", reps: "" },
-      { weight: "", reps: "" },
-      { weight: "", reps: "" }
-    ],
-    remark: "",
-    tag: "Good"
   });
-  renderExerciseBlocks();
-  S.tap();
 }
 
-function renderExerciseBlocks() {
-  const container = $("#log-exercise-blocks-container");
-  if (!container) return;
-  container.innerHTML = "";
+function mountModeSelect() {
+  setHeader({ brand: true });
+  setNav(null);
 
-  activeDailyLog.exercises.forEach((ex, exIdx) => {
-    const block = document.createElement("div");
-    block.className = "log-exercise-block";
-
-    // "Last time" lookup for SAME session and SAME exercise
-    const pastLogs = state.logbook.logs || [];
-    const lastSession = pastLogs.find(l => 
-      l.sessionName?.toLowerCase() === activeDailyLog.sessionName?.toLowerCase() &&
-      l.exercises?.some(e => e.name?.toLowerCase() === ex.name?.toLowerCase())
-    );
-    const lastEx = lastSession?.exercises?.find(e => e.name?.toLowerCase() === ex.name?.toLowerCase());
-
-    const lastTimeHtml = lastEx ? `
-      <div class="last-time-banner" data-ex-idx="${exIdx}">
-        <span>Last time (${lastSession.date}): <b>${lastEx.sets.map(s => `${s.weight}kg×${s.reps}`).join(", ")}</b> ${lastEx.remark ? `• "${lastEx.remark}"` : ""}</span>
+  mountScreen("mode-select", (container) => {
+    container.innerHTML = `
+      <div class="mode-card" id="mode-planner-card">
+        <div class="mode-card__illustration">
+          ${Icons.calendarScene()}
+        </div>
+        <h2 class="mode-card__title">AI Planner</h2>
+        <p class="mode-card__desc">Automated periodization, 5-col day map, double progression and volume heatmaps.</p>
       </div>
-    ` : `
-      <div class="last-time-banner" style="border-left-color: var(--dim);">
-        <span class="sub">First time logging this exercise in ${activeDailyLog.sessionName}.</span>
+
+      <div class="mode-card" id="mode-logbook-card">
+        <div class="mode-card__illustration">
+          ${Icons.notebookScene()}
+        </div>
+        <h2 class="mode-card__title">Logbook</h2>
+        <p class="mode-card__desc">Notion-style blank page tracking, autocomplete, last-time history and spark AI suggestions.</p>
       </div>
     `;
 
-    block.innerHTML = `
-      <div class="log-exercise-head">
-        <span class="log-exercise-title">${ex.name}</span>
-        <button type="button" class="spark-ai-btn" data-ex-idx="${exIdx}">
-          <span>✦ Suggest</span>
+    $("#mode-planner-card", container).onclick = () => {
+      state.currentMode = "planner";
+      saveState(state);
+      if (!state.planner.setupCompleted) {
+        mountPlannerSetup();
+      } else {
+        mountPlannerToday();
+      }
+    };
+
+    $("#mode-logbook-card", container).onclick = () => {
+      state.currentMode = "logbook";
+      saveState(state);
+      if (!state.logbook.setupCompleted) {
+        mountLogbookSetup();
+      } else {
+        mountLogbookLog();
+      }
+    };
+  });
+}
+
+function mountSettings(sourceMode = "planner") {
+  setHeader({
+    title: "Settings & Profile",
+    showBack: true,
+    onBack: () => {
+      if (sourceMode === "planner") mountPlannerToday();
+      else if (sourceMode === "logbook") mountLogbookLog();
+      else mountModeSelect();
+    }
+  });
+  setNav(sourceMode, sourceMode === "planner" ? "profile" : "settings");
+
+  mountScreen("settings", (container) => {
+    const p = state.profile;
+    const s = state.settings;
+
+    container.innerHTML = `
+      <!-- 1. Profile Vitals Section -->
+      <div class="settings-section">
+        <span class="settings-section__title">Athlete Vitals</span>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label" for="set-name">Full Name</label>
+            <input type="text" id="set-name" class="form-input" value="${p.name || ''}">
+          </div>
+
+          <div class="about-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="set-age">Age</label>
+              <input type="number" id="set-age" class="form-input tabular-num" value="${p.age || 24}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <div class="segmented-control" id="set-gender-seg">
+                <button type="button" class="segmented-control__item ${p.gender === 'male' ? 'segmented-control__item--active' : ''}" data-val="male">M</button>
+                <button type="button" class="segmented-control__item ${p.gender === 'female' ? 'segmented-control__item--active' : ''}" data-val="female">F</button>
+                <button type="button" class="segmented-control__item ${p.gender === 'other' ? 'segmented-control__item--active' : ''}" data-val="other">O</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="about-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="set-height">Height (${p.unitHeight || 'cm'})</label>
+              <input type="number" id="set-height" class="form-input tabular-num" value="${p.heightCm || 175}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="set-weight">Weight (${p.unitWeight || 'kg'})</label>
+              <input type="number" id="set-weight" class="form-input tabular-num" value="${p.weightKg || 74}">
+            </div>
+          </div>
+
+          <button type="button" class="btn btn--secondary btn--sm" id="set-save-vitals">
+            Save Vitals
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Training Mode Switch -->
+      <div class="settings-section">
+        <span class="settings-section__title">Training Mode</span>
+        <div class="card">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row__label">Current: ${state.currentMode === 'planner' ? 'AI Planner' : 'Logbook'}</div>
+              <div class="settings-row__desc">Switch between automated planner and free logbook</div>
+            </div>
+            <button class="btn btn--primary btn--sm" id="set-switch-mode">Switch Path</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Appearance & Theme -->
+      <div class="settings-section">
+        <span class="settings-section__title">Appearance</span>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Theme Mode</label>
+            <div class="segmented-control" id="theme-seg">
+              <button type="button" class="segmented-control__item ${s.theme === 'dark' ? 'segmented-control__item--active' : ''}" data-val="dark">Dark</button>
+              <button type="button" class="segmented-control__item ${s.theme === 'light' ? 'segmented-control__item--active' : ''}" data-val="light">Light</button>
+              <button type="button" class="segmented-control__item ${s.theme === 'system' ? 'segmented-control__item--active' : ''}" data-val="system">System</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Accent Swatch</label>
+            <div class="swatches-grid" id="swatches-grid">
+              <button type="button" class="swatch-btn swatch--red ${s.accent === 'red' ? 'swatch-btn--active' : ''}" data-val="red" aria-label="Red">${Icons.check}</button>
+              <button type="button" class="swatch-btn swatch--rose ${s.accent === 'rose' ? 'swatch-btn--active' : ''}" data-val="rose" aria-label="Rose">${Icons.check}</button>
+              <button type="button" class="swatch-btn swatch--blue ${s.accent === 'blue' ? 'swatch-btn--active' : ''}" data-val="blue" aria-label="Blue">${Icons.check}</button>
+              <button type="button" class="swatch-btn swatch--teal ${s.accent === 'teal' ? 'swatch-btn--active' : ''}" data-val="teal" aria-label="Teal">${Icons.check}</button>
+              <button type="button" class="swatch-btn swatch--violet ${s.accent === 'violet' ? 'swatch-btn--active' : ''}" data-val="violet" aria-label="Violet">${Icons.check}</button>
+              <button type="button" class="swatch-btn swatch--graphite ${s.accent === 'graphite' ? 'swatch-btn--active' : ''}" data-val="graphite" aria-label="Graphite">${Icons.check}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Sound & Audio Level -->
+      <div class="settings-section">
+        <span class="settings-section__title">Sound & Haptics</span>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Sound FX Level</label>
+            <div class="segmented-control" id="sound-seg">
+              <button type="button" class="segmented-control__item ${s.soundLevel === 'off' ? 'segmented-control__item--active' : ''}" data-val="off">Off</button>
+              <button type="button" class="segmented-control__item ${s.soundLevel === 'low' ? 'segmented-control__item--active' : ''}" data-val="low">Low</button>
+              <button type="button" class="segmented-control__item ${s.soundLevel === 'normal' ? 'segmented-control__item--active' : ''}" data-val="normal">Normal</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Backup & Restore -->
+      <div class="settings-section">
+        <span class="settings-section__title">Local Backup & Restore</span>
+        <div class="card">
+          <p class="card__subtitle">Your training data stays on your device. Export regularly to save your logs.</p>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn--secondary btn--sm" id="btn-export-backup" style="flex:1;">Export (.JSON)</button>
+            <button class="btn btn--secondary btn--sm" id="btn-restore-backup" style="flex:1;">Restore</button>
+            <input type="file" id="file-restore-input" accept=".json" style="display:none;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Account Actions -->
+      <div class="settings-section">
+        <div class="card">
+          <button class="btn btn--ghost btn--block" id="btn-sign-out" style="color: #EF4444;">Sign Out</button>
+          <button class="btn btn--danger btn--block" id="btn-reset-data">Reset All Data</button>
+        </div>
+      </div>
+    `;
+
+    // Save vitals
+    let genderVal = p.gender || "male";
+    $$("#set-gender-seg .segmented-control__item", container).forEach(b => {
+      b.onclick = () => {
+        $$("#set-gender-seg .segmented-control__item", container).forEach(x => x.classList.remove("segmented-control__item--active"));
+        b.classList.add("segmented-control__item--active");
+        genderVal = b.getAttribute("data-val");
+      };
+    });
+
+    $("#set-save-vitals", container).onclick = () => {
+      state.profile.name = $("#set-name", container).value.trim() || state.profile.name;
+      state.profile.age = parseInt($("#set-age", container).value) || state.profile.age;
+      state.profile.gender = genderVal;
+      state.profile.heightCm = parseFloat($("#set-height", container).value) || state.profile.heightCm;
+      state.profile.weightKg = parseFloat($("#set-weight", container).value) || state.profile.weightKg;
+      saveState(state);
+      showToast("Profile vitals saved!");
+    };
+
+    // Switch Mode
+    $("#set-switch-mode", container).onclick = () => mountModeSelect();
+
+    // Theme Selector
+    $$("#theme-seg .segmented-control__item", container).forEach(b => {
+      b.onclick = () => {
+        $$("#theme-seg .segmented-control__item", container).forEach(x => x.classList.remove("segmented-control__item--active"));
+        b.classList.add("segmented-control__item--active");
+        state.settings.theme = b.getAttribute("data-val");
+        saveState(state);
+        applyThemeAndAccent();
+      };
+    });
+
+    // Swatches
+    $$("#swatches-grid .swatch-btn", container).forEach(btn => {
+      btn.onclick = () => {
+        $$("#swatches-grid .swatch-btn", container).forEach(x => x.classList.remove("swatch-btn--active"));
+        btn.classList.add("swatch-btn--active");
+        state.settings.accent = btn.getAttribute("data-val");
+        saveState(state);
+        applyThemeAndAccent();
+      };
+    });
+
+    // Sound Level
+    $$("#sound-seg .segmented-control__item", container).forEach(b => {
+      b.onclick = () => {
+        $$("#sound-seg .segmented-control__item", container).forEach(x => x.classList.remove("segmented-control__item--active"));
+        b.classList.add("segmented-control__item--active");
+        state.settings.soundLevel = b.getAttribute("data-val");
+        saveState(state);
+        if (window.pushpaAudio) window.pushpaAudio.setLevel(state.settings.soundLevel);
+        if (window.pushpaAudio && state.settings.soundLevel !== "off") {
+          window.pushpaAudio.playSetTick();
+        }
+      };
+    });
+
+    // Backup & Restore
+    $("#btn-export-backup", container).onclick = () => {
+      exportJSON(state);
+      showToast("Backup downloaded!");
+    };
+
+    const restoreInput = $("#file-restore-input", container);
+    $("#btn-restore-backup", container).onclick = () => restoreInput.click();
+    restoreInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        state = await importJSON(file);
+        applyThemeAndAccent();
+        showToast("Backup restored successfully!");
+        mountSettings(sourceMode);
+      } catch (err) {
+        showToast("Failed to restore backup file.");
+      }
+    };
+
+    // Sign out
+    $("#btn-sign-out", container).onclick = () => {
+      showModal({
+        title: "Sign Out?",
+        desc: "You will return to the login screen. Your local data remains saved on this device.",
+        confirmText: "Sign Out",
+        onConfirm: () => {
+          state.auth.isLoggedIn = false;
+          saveState(state);
+          mountAuth();
+        }
+      });
+    };
+
+    // Reset All Data
+    $("#btn-reset-data", container).onclick = () => {
+      showModal({
+        title: "Reset All Training Data?",
+        desc: "This will permanently wipe all logs, programs, and settings. This action cannot be undone.",
+        confirmText: "Reset Everything",
+        onConfirm: () => {
+          state = getDefaultState();
+          saveState(state);
+          applyThemeAndAccent();
+          showToast("All data reset to factory defaults.");
+          mountAuth();
+        }
+      });
+    };
+  });
+}
+
+/* ==========================================================================
+   MILESTONE 4 & 5: AI PLANNER MODE & LIVE GYM WORKOUT
+   ========================================================================== */
+
+function mountPlannerSetup() {
+  setHeader({ title: "Plan Setup (< 60s)" });
+  setNav(null);
+
+  mountScreen("planner-setup", (container) => {
+    let days = state.planner.daysPerWeek || 4;
+    let length = state.planner.programLength || 60;
+
+    container.innerHTML = `
+      <div class="card">
+        <h2 class="card__title">Customize Your Program</h2>
+        <p class="card__subtitle">Adaptive periodization tailored to your schedule.</p>
+
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-label">Training Days Per Week</label>
+          <div class="segmented-control" id="days-seg">
+            <button type="button" class="segmented-control__item ${days === 3 ? 'segmented-control__item--active' : ''}" data-val="3">3 Days</button>
+            <button type="button" class="segmented-control__item ${days === 4 ? 'segmented-control__item--active' : ''}" data-val="4">4 Days</button>
+            <button type="button" class="segmented-control__item ${days === 5 ? 'segmented-control__item--active' : ''}" data-val="5">5 Days</button>
+            <button type="button" class="segmented-control__item ${days === 6 ? 'segmented-control__item--active' : ''}" data-val="6">6 Days</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Program Length</label>
+          <div class="segmented-control" id="len-seg">
+            <button type="button" class="segmented-control__item ${length === 30 ? 'segmented-control__item--active' : ''}" data-val="30">30d</button>
+            <button type="button" class="segmented-control__item ${length === 60 ? 'segmented-control__item--active' : ''}" data-val="60">60d</button>
+            <button type="button" class="segmented-control__item ${length === 90 ? 'segmented-control__item--active' : ''}" data-val="90">90d</button>
+            <button type="button" class="segmented-control__item ${length === 180 ? 'segmented-control__item--active' : ''}" data-val="180">180d</button>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn--primary btn--block" id="btn-finish-setup" style="margin-top: 14px;">
+          Generate My Plan
+        </button>
+      </div>
+    `;
+
+    $$("#days-seg .segmented-control__item", container).forEach(b => {
+      b.onclick = () => {
+        $$("#days-seg .segmented-control__item", container).forEach(x => x.classList.remove("segmented-control__item--active"));
+        b.classList.add("segmented-control__item--active");
+        days = parseInt(b.getAttribute("data-val"));
+      };
+    });
+
+    $$("#len-seg .segmented-control__item", container).forEach(b => {
+      b.onclick = () => {
+        $$("#len-seg .segmented-control__item", container).forEach(x => x.classList.remove("segmented-control__item--active"));
+        b.classList.add("segmented-control__item--active");
+        length = parseInt(b.getAttribute("data-val"));
+      };
+    });
+
+    $("#btn-finish-setup", container).onclick = () => {
+      state.planner.daysPerWeek = days;
+      state.planner.programLength = length;
+      state.planner.setupCompleted = true;
+      saveState(state);
+      showToast("Plan generated successfully!");
+      mountPlannerToday();
+    };
+  });
+}
+
+function mountPlannerToday() {
+  setHeader({
+    title: "Today",
+    actionsHtml: `
+      <div class="app-header__btn" title="Streak">
+        ${Icons.flameStreak(18)}
+        <span class="tabular-num">${state.planner.completedDays.length}</span>
+      </div>
+    `
+  });
+  setNav("planner", "today");
+
+  mountScreen("planner-today", (container) => {
+    const curDay = state.planner.currentDay || 1;
+    const isCompleted = state.planner.completedDays.includes(curDay);
+
+    container.innerHTML = `
+      <!-- 1. Hero Workout Card (ONE main action) -->
+      <div class="today-hero">
+        <div class="today-hero__badge">
+          ${Icons.flameStreak(14)}
+          <span>Day ${curDay} of ${state.planner.programLength}</span>
+        </div>
+        <h1 class="today-hero__title">Push Hypertrophy & Overload</h1>
+        <div class="today-hero__meta">
+          <span>~45 min</span>
+          <span>•</span>
+          <span>Chest, Delts, Triceps</span>
+        </div>
+
+        <div class="exercise-list">
+          <div class="exercise-item">
+            <span class="exercise-item__name">Barbell Bench Press</span>
+            <span class="exercise-item__sets">3 × 8-10</span>
+          </div>
+          <div class="exercise-item">
+            <span class="exercise-item__name">Incline Dumbbell Press</span>
+            <span class="exercise-item__sets">3 × 10-12</span>
+          </div>
+          <div class="exercise-item">
+            <span class="exercise-item__name">Cable Chest Flyes</span>
+            <span class="exercise-item__sets">3 × 12-15</span>
+          </div>
+        </div>
+
+        <button class="btn btn--primary btn--block" id="btn-start-gym-workout">
+          ${isCompleted ? 'Repeat Workout' : 'Start Workout'}
         </button>
       </div>
 
-      ${lastTimeHtml}
-
-      <div class="log-set-table">
-        <div style="display: grid; grid-template-columns: 28px 1fr 1fr 34px; gap: 8px; margin-bottom: 4px; font-size: 11px; color: var(--dim); font-weight: 700; text-align: center;">
-          <span>SET</span><span>KG</span><span>REPS</span><span></span>
-        </div>
-        <div id="log-sets-container-${exIdx}">
-          ${ex.sets.map((s, sIdx) => `
-            <div class="log-set-row">
-              <span class="log-set-idx">${sIdx + 1}</span>
-              <input type="number" step="0.5" class="form-input log-input inp-set-w" placeholder="0" inputmode="decimal" value="${s.weight}" data-ex="${exIdx}" data-s="${sIdx}">
-              <input type="number" class="form-input log-input inp-set-r" placeholder="0" inputmode="decimal" value="${s.reps}" data-ex="${exIdx}" data-s="${sIdx}">
-              <button type="button" class="log-row-del" data-ex="${exIdx}" data-s="${sIdx}">✕</button>
-            </div>
-          `).join("")}
-        </div>
-      </div>
-
-      <button type="button" class="btn-secondary" style="width: 100%; height: 34px; font-size: 11px; margin-top: 6px;" id="btn-add-set-row-${exIdx}">
-        + Add Set
-      </button>
-
-      <div style="margin-top: 10px;">
-        <input type="text" class="form-input inp-remark" placeholder="Remark (e.g. felt light, right shoulder tight)..." value="${ex.remark}" data-ex="${exIdx}" style="height: 38px; font-size: 12px;">
-      </div>
-
-      <div class="log-tags-row">
-        ${["Easy", "Good", "Hard", "Pain"].map(t => `
-          <button type="button" class="log-tag-pill ${ex.tag === t ? "selected" : ""}" data-ex="${exIdx}" data-tag="${t}">${t}</button>
-        `).join("")}
-      </div>
-    `;
-
-    // Bind inputs & autosave
-    $$(".inp-set-w", block).forEach(inp => {
-      inp.oninput = () => {
-        const eI = inp.getAttribute("data-ex");
-        const sI = inp.getAttribute("data-s");
-        activeDailyLog.exercises[eI].sets[sI].weight = inp.value;
-      };
-    });
-
-    $$(".inp-set-r", block).forEach(inp => {
-      inp.oninput = () => {
-        const eI = inp.getAttribute("data-ex");
-        const sI = inp.getAttribute("data-s");
-        activeDailyLog.exercises[eI].sets[sI].reps = inp.value;
-      };
-    });
-
-    $$(".log-row-del", block).forEach(btn => {
-      btn.onclick = () => {
-        const eI = btn.getAttribute("data-ex");
-        const sI = btn.getAttribute("data-s");
-        activeDailyLog.exercises[eI].sets.splice(sI, 1);
-        renderExerciseBlocks();
-      };
-    });
-
-    block.querySelector(`#btn-add-set-row-${exIdx}`).onclick = () => {
-      activeDailyLog.exercises[exIdx].sets.push({ weight: "", reps: "" });
-      renderExerciseBlocks();
-      S.tap();
-    };
-
-    block.querySelector(".inp-remark").oninput = (e) => {
-      activeDailyLog.exercises[exIdx].remark = e.target.value;
-    };
-
-    $$(".log-tag-pill", block).forEach(pill => {
-      pill.onclick = () => {
-        activeDailyLog.exercises[exIdx].tag = pill.getAttribute("data-tag");
-        $$(".log-tag-pill", block).forEach(p => p.classList.remove("selected"));
-        pill.classList.add("selected");
-        S.tap();
-      };
-    });
-
-    // Spark Suggestion Popover
-    block.querySelector(".spark-ai-btn").onclick = () => {
-      const suggestion = suggestionEngine.suggest(ex.name, activeDailyLog.sessionName, state.logbook.logs || []);
-      alert(`💡 PUSHPA Coach (${ex.name}):\n\n${suggestion.text}`);
-      S.open();
-    };
-
-    container.appendChild(block);
-  });
-}
-
-function finishLogbookSession() {
-  if (!activeDailyLog || activeDailyLog.exercises.length === 0) {
-    alert("Please log at least one exercise before finishing.");
-    return;
-  }
-
-  // Calculate volume
-  let vol = 0;
-  let totalSets = 0;
-  activeDailyLog.exercises.forEach(e => {
-    e.sets.forEach(s => {
-      const w = parseFloat(s.weight) || 0;
-      const r = parseInt(s.reps, 10) || 0;
-      if (w > 0 && r > 0) {
-        vol += w * r;
-        totalSets++;
-      }
-    });
-  });
-
-  const savedLog = {
-    ...activeDailyLog,
-    id: `logbook_${Date.now()}`,
-    totalVolumeKg: Math.round(vol),
-    totalSets
-  };
-
-  if (!state.logbook.logs) state.logbook.logs = [];
-  state.logbook.logs.unshift(savedLog);
-
-  // Update weekly completed sessions queue
-  if (!state.logbook.completedSessionsInWeek) state.logbook.completedSessionsInWeek = [];
-  state.logbook.completedSessionsInWeek.push(savedLog.sessionName);
-
-  saveState(state);
-  S.done();
-
-  // Reset active in-memory log
-  activeDailyLog = null;
-
-  alert(`🔥 Session Saved!\n\nCompleted ${savedLog.sessionName} with ${totalSets} working sets and ${vol.toLocaleString()} kg total volume.`);
-  renderLogbookToday();
-  renderLogbookReports();
-}
-
-function renderLogbookReports() {
-  const logs = state.logbook.logs || [];
-  const queue = getWeeklySessionQueue(state.logbook.layout || DEFAULT_LAYOUT);
-  const plannedWeekly = queue.length;
-  const completedWeekly = state.logbook.completedSessionsInWeek?.length || 0;
-
-  const consistencyPct = Math.round((completedWeekly / Math.max(1, plannedWeekly)) * 100);
-  $("#log-stat-consistency").textContent = `${consistencyPct}%`;
-  $("#log-stat-streak").textContent = `${Math.max(1, Math.floor(logs.length / 4))} Wk`;
-  $("#log-stat-missed").textContent = state.logbook.missedSessionsCount || 0;
-
-  $("#log-report-summary").textContent = logs.length > 0
-    ? `You completed ${completedWeekly} of ${plannedWeekly} planned sessions this week. Overall progressive overload trajectory is strong.`
-    : "Start logging your workouts to unlock weekly volume trends and consistency analysis.";
-
-  // Render History Timeline
-  const timeline = $("#log-history-timeline");
-  if (!timeline) return;
-
-  if (logs.length === 0) {
-    timeline.innerHTML = `<span class="sub">No logs yet. Finish your first daily page!</span>`;
-    return;
-  }
-
-  timeline.innerHTML = logs.map(l => `
-    <div class="row" style="padding: 10px 0;">
-      <div>
-        <b>${l.date} • ${l.sessionName}</b>
-        <small>${l.exercises.length} moves • ${l.totalSets || 0} sets • ${l.totalVolumeKg || 0} kg</small>
-      </div>
-    </div>
-  `).join("");
-}
-
-function initLogbookEvents() {
-  $("#btn-open-log-setup")?.addEventListener("click", () => {
-    const layout = state.logbook.layout || DEFAULT_LAYOUT;
-    const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-    const sheetContent = $("#sc");
-    sheetContent.innerHTML = `
-      <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 12px;">Weekly Layout Setup</h2>
-      <p class="sub" style="margin-bottom: 16px;">Set your split template. The week queue resets automatically each week.</p>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        ${days.map(d => `
-          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--s2); padding: 8px 12px; border-radius: 10px;">
-            <b style="text-transform: uppercase; font-size: 12px;">${d}</b>
-            <input type="text" class="form-input inp-layout-day" data-day="${d}" value="${layout[d]}" style="width: 120px; height: 34px; text-align: center; font-size: 13px;">
+      <!-- 2. Home Workout Row -->
+      <div class="home-workout-row" id="row-home-workout">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background-color: var(--s2); display: flex; align-items: center; justify-content: center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           </div>
-        `).join("")}
-      </div>
-      <button type="button" class="cta" id="btn-save-layout" style="margin-top: 16px;">Save Layout</button>
-    `;
-    $("#ph").classList.add("open");
-
-    $("#btn-save-layout").onclick = () => {
-      $$(".inp-layout-day", sheetContent).forEach(inp => {
-        const d = inp.getAttribute("data-day");
-        state.logbook.layout[d] = inp.value.trim() || "Rest";
-      });
-      saveState(state);
-      $("#ph").classList.remove("open");
-      renderLogbookToday();
-      S.done();
-    };
-  });
-}
-
-/* ==========================================================================
-   GUIDED HOME WORKOUTS (Section 7)
-   ========================================================================== */
-
-function initGuidedPlayer() {
-  $("#btn-start-guided-home")?.addEventListener("click", () => {
-    openGuidedSelectionSheet();
-  });
-
-  $("#btn-guided-done")?.addEventListener("click", () => {
-    advanceGuidedMove();
-  });
-
-  $("#btn-guided-skip")?.addEventListener("click", () => {
-    advanceGuidedMove();
-  });
-
-  $("#btn-close-guided")?.addEventListener("click", () => {
-    clearInterval(guidedTimerInterval);
-    $("#guided-player-screen").classList.remove("active");
-  });
-
-  $("#btn-finish-guided-early")?.addEventListener("click", () => {
-    finishGuidedWorkout();
-  });
-}
-
-function openGuidedSelectionSheet() {
-  const sheetContent = $("#sc");
-  sheetContent.innerHTML = `
-    <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 10px;">Guided Home Workouts</h2>
-    <p class="sub" style="margin-bottom: 16px;">No weights required. Low-poly animated skeleton guide.</p>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      ${Object.entries(GUIDED_ROUTINES).map(([k, r]) => `
-        <div class="card" style="cursor: pointer; padding: 14px;" data-routine="${k}">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="font-size: 16px;">${r.name}</b>
-            <span class="chip on" style="font-size: 11px;">~${r.estimatedMinutes} min</span>
-          </div>
-          <p class="sub" style="margin-top: 4px;">${r.warmup.length} warm-up moves • ${r.main.length} main moves • ${r.cooldown.length} cool-down stretches</p>
-        </div>
-      `).join("")}
-    </div>
-  `;
-  $("#ph").classList.add("open");
-
-  $$("[data-routine]", sheetContent).forEach(card => {
-    card.onclick = () => {
-      const routineKey = card.getAttribute("data-routine");
-      startGuidedWorkout(routineKey);
-      $("#ph").classList.remove("open");
-    };
-  });
-}
-
-function startGuidedWorkout(routineKey) {
-  const routine = GUIDED_ROUTINES[routineKey];
-  if (!routine) return;
-
-  const allMoveIds = [...routine.warmup, ...routine.main, ...routine.cooldown];
-  guidedActiveRoutine = {
-    ...routine,
-    moves: allMoveIds.map(id => GUIDED_MOVES.find(m => m.id === id)).filter(Boolean)
-  };
-
-  guidedMoveIndex = 0;
-  guidedTotalElapsedSeconds = 0;
-
-  $("#guided-player-screen").classList.add("active");
-  renderGuidedMoveUI();
-}
-
-function renderGuidedMoveUI() {
-  if (!guidedActiveRoutine || !guidedActiveRoutine.moves || guidedActiveRoutine.moves.length === 0) {
-    const defaultRoutine = GUIDED_ROUTINES["full_body_ignite"] || Object.values(GUIDED_ROUTINES)[0];
-    const allMoveIds = [...defaultRoutine.warmup, ...defaultRoutine.main, ...defaultRoutine.cooldown];
-    guidedActiveRoutine = {
-      ...defaultRoutine,
-      moves: allMoveIds.map(id => GUIDED_MOVES.find(m => m.id === id)).filter(Boolean)
-    };
-  }
-
-  const move = guidedActiveRoutine.moves[guidedMoveIndex];
-  if (!move) {
-    finishGuidedWorkout();
-    return;
-  }
-
-  $("#guided-progress-label").textContent = `Move ${guidedMoveIndex + 1} of ${guidedActiveRoutine.moves.length}`;
-  $("#guided-move-name").textContent = move.name;
-  $("#guided-cue-disp").textContent = move.cues[0] || "";
-
-  const chipsEl = $("#guided-move-chips");
-  if (chipsEl) {
-    chipsEl.innerHTML = move.primaryMuscles.map(m => `<span class="chip">${m.toUpperCase()}</span>`).join("");
-  }
-
-  // Highlight working muscles
-  $$(".muscle-highlight-poly").forEach(poly => poly.classList.remove("active-working"));
-  move.primaryMuscles.forEach(m => {
-    if (m === "chest") $("#poly-chest")?.classList.add("active-working");
-    if (m === "core") $("#poly-core")?.classList.add("active-working");
-    if (m === "quads") { $("#poly-quad-l")?.classList.add("active-working"); $("#poly-quad-r")?.classList.add("active-working"); }
-    if (m === "shoulders" || m === "triceps") { $("#poly-arm-l")?.classList.add("active-working"); $("#poly-arm-r")?.classList.add("active-working"); }
-  });
-
-  if (move.type === "time") {
-    guidedTimeRemaining = move.defaultDuration || 30;
-    $("#guided-target-disp").textContent = `${guidedTimeRemaining}s`;
-    clearInterval(guidedTimerInterval);
-    guidedTimerInterval = setInterval(() => {
-      guidedTimeRemaining--;
-      guidedTotalElapsedSeconds++;
-      updateGuidedCalories();
-      if (guidedTimeRemaining <= 0) {
-        clearInterval(guidedTimerInterval);
-        S.done();
-        advanceGuidedMove();
-      } else {
-        $("#guided-target-disp").textContent = `${guidedTimeRemaining}s`;
-      }
-    }, 1000);
-  } else {
-    clearInterval(guidedTimerInterval);
-    $("#guided-target-disp").textContent = `${move.defaultReps || 12} reps`;
-  }
-}
-
-function updateGuidedCalories() {
-  const weight = state.profile.weightKg || 70;
-  // MET formula: Calories = MET * 3.5 * weightKg / 200 * (seconds / 60)
-  const calories = Math.round(5.5 * 3.5 * weight / 200 * (guidedTotalElapsedSeconds / 60));
-  $("#guided-calories-label").textContent = `~${calories} kcal`;
-}
-
-function advanceGuidedMove() {
-  clearInterval(guidedTimerInterval);
-
-  if (!guidedActiveRoutine || !guidedActiveRoutine.moves || guidedActiveRoutine.moves.length === 0) {
-    const defaultRoutine = GUIDED_ROUTINES["full_body_ignite"] || Object.values(GUIDED_ROUTINES)[0];
-    const allMoveIds = [...defaultRoutine.warmup, ...defaultRoutine.main, ...defaultRoutine.cooldown];
-    guidedActiveRoutine = {
-      ...defaultRoutine,
-      moves: allMoveIds.map(id => GUIDED_MOVES.find(m => m.id === id)).filter(Boolean)
-    };
-  }
-
-  guidedMoveIndex++;
-  S.done();
-  if (guidedMoveIndex < guidedActiveRoutine.moves.length) {
-    renderGuidedMoveUI();
-  } else {
-    finishGuidedWorkout();
-  }
-}
-
-function finishGuidedWorkout() {
-  clearInterval(guidedTimerInterval);
-  $("#guided-player-screen").classList.remove("active");
-
-  const weight = state.profile.weightKg || 70;
-  const calories = Math.round(5.5 * 3.5 * weight / 200 * (guidedTotalElapsedSeconds / 60));
-  const rName = guidedActiveRoutine?.name || "Guided Session";
-
-  alert(`🔥 Workout Finished!\n\nCompleted ${rName} in ${Math.round(guidedTotalElapsedSeconds / 60)} min (~${calories} estimated kcal). Fantastic effort!`);
-  S.done();
-}
-
-/* ==========================================================================
-   AI PLANNER ENGINE (Section 6)
-   ========================================================================== */
-
-function renderPlannerToday() {
-  ensureProgramSchedule();
-  const schedule = state.programSchedule;
-  const cur = state.currentProgramDay || 1;
-  const dayPlan = schedule.find(d => d.dayNumber === cur) || schedule[0];
-
-  $("#today-day-counter").textContent = `Day ${cur} of ${state.profile.programLength || 60}`;
-  $("#today-session-name").textContent = dayPlan.shortName || dayPlan.name;
-
-  // Clean, simplified lineup list
-  const lineup = $("#lineup");
-  if (lineup) {
-    lineup.innerHTML = dayPlan.exercises.map((ex, i) => `
-      <div class="row" style="cursor: pointer;" data-ex-id="${ex.exerciseId}">
-        <div>
-          <b>${i + 1}. ${ex.name}</b>
-          <small>${ex.targetSets} sets × ${ex.targetReps} reps @ <span class="num text-fire font-bold">${ex.targetWeight} kg</span></small>
-        </div>
-      </div>
-    `).join("");
-
-    $$("#lineup .row").forEach(row => {
-      row.onclick = () => {
-        const exId = row.getAttribute("data-ex-id");
-        openExerciseDetailSheet(exId);
-      };
-    });
-  }
-
-  $("#btn-start-today-workout").onclick = () => {
-    startLiveGymWorkout(dayPlan);
-  };
-}
-
-function renderPlanTab() {
-  ensureProgramSchedule();
-  const schedule = state.programSchedule;
-  const N = state.profile.programLength || 60;
-  const cur = state.currentProgramDay || 1;
-
-  $("#pl").textContent = `Day ${cur} of ${N}`;
-  $("#pp").textContent = `${Math.round((cur / N) * 100)}%`;
-  $("#pbar").style.width = `${Math.round((cur / N) * 100)}%`;
-
-  const daysContainer = $("#days");
-  if (daysContainer) {
-    daysContainer.innerHTML = Array.from({ length: N }, (_, i) => {
-      const dNum = i + 1;
-      const isDone = state.completedDays.includes(dNum) || dNum < cur;
-      const isCur = dNum === cur;
-      return `<button class="dc ${isDone ? "done" : isCur ? "cur" : "lock"}" data-d="${dNum}">${dNum}</button>`;
-    }).join("");
-
-    $$("#days .dc").forEach(btn => {
-      btn.onclick = () => {
-        const dNum = parseInt(btn.getAttribute("data-d"), 10);
-        openDaySheet(dNum);
-      };
-    });
-  }
-}
-
-function openDaySheet(dNum) {
-  const plan = state.programSchedule.find(d => d.dayNumber === dNum);
-  if (!plan) return;
-
-  const cur = state.currentProgramDay || 1;
-  const isLocked = dNum > cur;
-
-  const sheetContent = $("#sc");
-  sheetContent.innerHTML = `
-    <h2 style="font-size: 22px; font-weight: 800;">${plan.name}</h2>
-    <p class="sub">${plan.focus} • ~${plan.durationMinutes} min</p>
-    <div style="margin-top: 14px;">
-      ${plan.exercises.map(e => `
-        <div class="row">
           <div>
-            <b>${e.name}</b>
-            <small>${e.targetSets} sets × ${e.targetReps} reps ${isLocked ? "• Set at unlock" : `@ ${e.targetWeight} kg`}</small>
+            <div style="font-weight: 700; color: var(--tx);">Guided Home Workout</div>
+            <div style="font-size: 12px; color: var(--dim);">No equipment • 2D animated skeleton</div>
           </div>
         </div>
-      `).join("")}
-    </div>
-    ${isLocked ? `<p class="sub" style="color: var(--warn); margin-top: 10px;">Finish Day ${cur} to unlock.</p>` : ""}
-    <button class="cta" ${isLocked ? "disabled" : ""} id="btn-sheet-start-gym" style="margin-top: 16px;">Start Workout</button>
-  `;
-  $("#ph").classList.add("open");
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
 
-  $("#btn-sheet-start-gym")?.addEventListener("click", () => {
-    if (!isLocked) {
-      $("#ph").classList.remove("open");
-      startLiveGymWorkout(plan);
-    }
+      <!-- 3. Compact Body Map -->
+      <div class="bodymap-container">
+        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+          <span class="caption">Weekly Muscle Volume</span>
+          <span style="font-size: 12px; color: var(--accent); font-weight: 600;">9 Direct Sets</span>
+        </div>
+        <svg class="bodymap-svg" viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Head & Torso -->
+          <circle cx="100" cy="30" r="16" fill="var(--s2)" stroke="var(--line)"/>
+          <path class="muscle-path muscle-path--active" d="M75 55 H125 L120 110 H80 Z"/>
+          <!-- Arms -->
+          <path class="muscle-path muscle-path--active" d="M60 60 L72 58 L68 110 L56 110 Z"/>
+          <path class="muscle-path muscle-path--active" d="M140 60 L128 58 L132 110 L144 110 Z"/>
+          <!-- Legs -->
+          <path class="muscle-path" d="M80 115 H98 L94 210 H80 Z"/>
+          <path class="muscle-path" d="M102 115 H120 L120 210 H106 Z"/>
+        </svg>
+      </div>
+    `;
+
+    $("#btn-start-gym-workout", container).onclick = () => {
+      mountLiveWorkout({ dayNumber: curDay, name: "Push Hypertrophy & Overload" });
+    };
+
+    $("#row-home-workout", container).onclick = () => {
+      mountGuided();
+    };
   });
 }
 
-function openExerciseDetailSheet(exerciseId) {
-  const details = getExerciseDetails(exerciseId);
-  const sheetContent = $("#sc");
-  sheetContent.innerHTML = `
-    <h2 style="font-size: 22px; font-weight: 800;">${details.name}</h2>
-    <p class="sub">${details.equipment.toUpperCase()} • ${details.pattern?.replace("_", " ").toUpperCase()}</p>
-    
-    <div style="margin-top: 14px;">
-      <b style="color: var(--fire); font-size: 13px;">Key Form Cues</b>
-      ${details.cues.map(c => `<div style="font-size: 13px; padding: 3px 0;">✓ ${c}</div>`).join("")}
-    </div>
+function mountPlannerPlan() {
+  setHeader({ title: "Program Plan" });
+  setNav("planner", "plan");
 
-    <div style="margin-top: 12px;">
-      <b style="color: var(--hard); font-size: 13px;">Common Mistakes</b>
-      ${details.mistakes.map(m => `<div style="font-size: 13px; padding: 3px 0; color: var(--dim);">✕ ${m}</div>`).join("")}
-    </div>
+  mountScreen("planner-plan", (container) => {
+    const totalDays = state.planner.programLength || 60;
+    const completed = state.planner.completedDays || [];
+    const curDay = state.planner.currentDay || 1;
+    const pct = Math.round((completed.length / totalDays) * 100);
 
-    <button type="button" class="btn-secondary" style="width: 100%; height: 42px; margin-top: 16px;" id="btn-close-ex-sheet">Close</button>
-  `;
-  $("#ph").classList.add("open");
-  $("#btn-close-ex-sheet").onclick = () => $("#ph").classList.remove("open");
-  S.open();
-}
+    // Build 5-column Day Map cells
+    let cellsHtml = "";
+    for (let d = 1; d <= totalDays; d++) {
+      const isDone = completed.includes(d);
+      const isCur = d === curDay;
+      const isLocked = d > curDay && !isDone;
+      const isRest = d % 7 === 0;
 
-function ensureProgramSchedule() {
-  if (!state.programSchedule || state.programSchedule.length === 0) {
-    state.programSchedule = generateFullProgram(
-      state.profile.programLength || 60,
-      state.profile.daysPerWeek || 4,
-      state.profile.availableEquipment,
-      state.profile.limitations,
-      state.profile.weightKg || 75,
-      state.profile.sex,
-      state.profile.experience,
-      state.profile.goal,
-      state.profile.prioritizedMuscles
-    );
-    saveState(state);
-  }
-}
+      let cls = "daymap__cell";
+      let inner = `${d}`;
 
-function startLiveGymWorkout(dayPlan) {
-  const liveScreen = $("#live-workout-screen");
-  liveScreen.classList.add("active");
-  liveWorkoutStartTime = Date.now();
-  updateLiveElapsed();
-  clearInterval(liveWorkoutInterval);
-  liveWorkoutInterval = setInterval(updateLiveElapsed, 1000);
+      if (isDone) {
+        cls += " daymap__cell--done";
+        inner = Icons.check;
+      } else if (isCur) {
+        cls += " daymap__cell--current";
+      } else if (isRest) {
+        cls += " daymap__cell--rest";
+      } else if (isLocked) {
+        cls += " daymap__cell--locked";
+        inner = Icons.lock;
+      }
 
-  const body = $("#live-workout-body");
-  body.innerHTML = dayPlan.exercises.map(e => `
-    <div class="card">
-      <b>${e.name}</b>
-      <div style="margin-top: 6px;">
-        <span class="chip on">${e.targetSets} sets × ${e.targetReps} reps @ ${e.targetWeight} kg</span>
+      cellsHtml += `<button class="${cls}" data-day="${d}" aria-label="Day ${d}">${inner}</button>`;
+    }
+
+    container.innerHTML = `
+      <!-- Sticky Progress Card -->
+      <div class="plan-progress-card">
+        <div class="plan-progress-card__header">
+          <span style="font-weight: 800; font-size: 16px;">Day ${curDay} of ${totalDays}</span>
+          <span class="tabular-num" style="color: var(--accent); font-weight: 700;">${pct}%</span>
+        </div>
+        <div class="plan-progress-card__bar-wrap">
+          <div class="plan-progress-card__bar" style="width: ${pct}%;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+          <span class="caption">Program Grid</span>
+          <span class="caption">5 Columns</span>
+        </div>
       </div>
-    </div>
-  `).join("");
 
-  $("#btn-minimize-workout").onclick = () => liveScreen.classList.remove("active");
-  $("#btn-finish-workout").onclick = () => {
-    clearInterval(liveWorkoutInterval);
-    liveScreen.classList.remove("active");
-    state.currentProgramDay = Math.min(state.profile.programLength, state.currentProgramDay + 1);
-    saveState(state);
-    alert("Gym workout finished! Progressive overload updated.");
-    S.done();
-    renderPlannerToday();
-    renderPlanTab();
-  };
-}
-
-function updateLiveElapsed() {
-  const sec = Math.floor((Date.now() - liveWorkoutStartTime) / 1000);
-  const m = String(Math.floor(sec / 60)).padStart(2, "0");
-  const s = String(sec % 60).padStart(2, "0");
-  const el = $("#live-elapsed-time");
-  if (el) el.textContent = `${m}:${s}`;
-}
-
-function renderPlannerProgress() {
-  // Volume bars & rings
-  const musEl = $("#mus");
-  if (musEl) {
-    musEl.innerHTML = ["Chest", "Back", "Legs", "Shoulders", "Arms"].map(m => `
-      <div class="mb">
-        <span>${m}</span>
-        <div class="bar" style="margin: 0;"><i style="width: 70%; background: var(--fire);"></i></div>
-        <span class="num text-tx">14</span>
+      <!-- 5-Column Day Map Grid -->
+      <div class="daymap" id="plan-daymap">
+        ${cellsHtml}
       </div>
-    `).join("");
-  }
+    `;
+
+    // Click handler for Day Map cells
+    $$("#plan-daymap .daymap__cell", container).forEach(btn => {
+      btn.onclick = () => {
+        const d = parseInt(btn.getAttribute("data-day"));
+        const isDone = completed.includes(d);
+        const isCur = d === curDay;
+        const isLocked = d > curDay && !isDone;
+
+        showSheet({
+          title: `Day ${d} Session`,
+          contentHtml: `
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div style="font-size:15px; font-weight:700; color:var(--tx);">
+                ${d % 7 === 0 ? 'Active Rest & Recovery' : 'Push Hypertrophy & Overload'}
+              </div>
+              <p style="font-size:13px; color:var(--dim);">
+                ${isDone ? 'Completed! Great work on progressive overload.' : (isLocked ? `Unlocks after completing Day ${d - 1}.` : 'Ready to train.')}
+              </p>
+              <button class="btn btn--primary btn--block" id="sheet-start-day-btn" ${isLocked ? 'disabled' : ''}>
+                ${isDone ? 'Repeat Workout' : 'Start Workout'}
+              </button>
+            </div>
+          `,
+          onRender: (sheet) => {
+            const startBtn = $("#sheet-start-day-btn", sheet);
+            if (startBtn) {
+              startBtn.onclick = () => {
+                closeOverlay();
+                mountLiveWorkout({ dayNumber: d, name: "Push Hypertrophy & Overload" });
+              };
+            }
+          }
+        });
+      };
+    });
+  });
 }
 
-function initPlannerEvents() {
-  $("#shade")?.addEventListener("click", () => $("#ph").classList.remove("open"));
+function mountPlannerProgress() {
+  setHeader({ title: "Progress & Overload" });
+  setNav("planner", "progress");
+
+  mountScreen("planner-progress", (container) => {
+    const completedCount = state.planner.completedDays.length;
+    const totalDays = state.planner.programLength || 60;
+
+    container.innerHTML = `
+      <div class="card">
+        <h3 class="card__title">Consistency Overview</h3>
+        <div style="display: flex; gap: 12px; align-items: center; margin-top: 8px;">
+          <div class="stat-card" style="flex: 1;">
+            <span class="stat-card__label">Sessions</span>
+            <span class="stat-card__val">${completedCount}</span>
+          </div>
+          <div class="stat-card" style="flex: 1;">
+            <span class="stat-card__label">Current Streak</span>
+            <span class="stat-card__val">${completedCount > 0 ? completedCount : 0}d</span>
+          </div>
+          <div class="stat-card" style="flex: 1;">
+            <span class="stat-card__label">Total Target</span>
+            <span class="stat-card__val">${totalDays}d</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estimated 1RM Progression Chart (SVG) -->
+      <div class="card">
+        <div class="card__header">
+          <h3 class="card__title">Bench Press E1RM Trend</h3>
+          <span class="chip chip--accent">+5.2 kg</span>
+        </div>
+        <div class="chart-container">
+          <svg width="100%" height="100%" viewBox="0 0 300 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="0" y1="110" x2="300" y2="110" stroke="var(--line)" stroke-width="1"/>
+            <line x1="0" y1="60" x2="300" y2="60" stroke="var(--line)" stroke-width="1" stroke-dasharray="4"/>
+            <polyline points="20,95 80,85 140,75 200,60 260,40" stroke="var(--accent)" stroke-width="3" fill="none"/>
+            <circle cx="20" cy="95" r="4" fill="var(--accent)"/>
+            <circle cx="80" cy="85" r="4" fill="var(--accent)"/>
+            <circle cx="140" cy="75" r="4" fill="var(--accent)"/>
+            <circle cx="200" cy="60" r="4" fill="var(--accent)"/>
+            <circle cx="260" cy="40" r="4" fill="var(--accent)"/>
+          </svg>
+        </div>
+        <p style="font-size: 13px; color: var(--dim); margin-top: 6px;">
+          Your upper body strength has increased by 6.8% over the last 4 weeks.
+        </p>
+      </div>
+    `;
+  });
+}
+
+function mountLiveWorkout({ dayNumber = 1, name = "Push Hypertrophy" } = {}) {
+  let seconds = 0;
+  setHeader({
+    title: `Day ${dayNumber}`,
+    showBack: true,
+    onBack: () => {
+      showModal({
+        title: "Leave Workout?",
+        desc: "Your progress for unlogged sets will be discarded.",
+        confirmText: "Leave",
+        onConfirm: () => mountPlannerToday()
+      });
+    },
+    actionsHtml: `
+      <button class="btn btn--primary btn--sm" id="btn-finish-live-workout">Finish</button>
+    `
+  });
+  setNav(null);
+
+  mountScreen("live-workout", (container) => {
+    let sets = [
+      { num: 1, weight: 70, reps: 10, done: false, effort: "good" },
+      { num: 2, weight: 70, reps: 10, done: false, effort: "good" },
+      { num: 3, weight: 70, reps: 8, done: false, effort: "good" }
+    ];
+
+    container.innerHTML = `
+      <div class="workout-exercise-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 class="workout-exercise-card__title">Barbell Bench Press</h2>
+          <span class="tabular-num" id="live-timer-display" style="font-size:16px; font-weight:700; color:var(--accent);">00:00</span>
+        </div>
+        <p class="workout-exercise-card__cues">Retract scapulae into bench, drive feet into floor, control descent.</p>
+
+        <!-- Set Table Grid -->
+        <div class="set-grid-header">
+          <span>Set</span>
+          <span>Kg</span>
+          <span>Reps</span>
+          <span>Check</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;" id="sets-container">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Effort Pills Selector for active set -->
+        <div class="effort-selector" id="effort-selector">
+          <button class="effort-pill effort-pill--easy" data-effort="easy">Easy</button>
+          <button class="effort-pill effort-pill--good effort-pill--active" data-effort="good">Good</button>
+          <button class="effort-pill effort-pill--hard" data-effort="hard">Hard</button>
+        </div>
+      </div>
+
+      <!-- Docked Rest Timer Bar (Layout, NOT floating) -->
+      <div class="rest-timer-bar" id="docked-rest-timer">
+        <div>
+          <span class="caption">Rest Timer</span>
+          <div class="rest-timer-bar__countdown" id="rest-countdown-txt">01:30</div>
+        </div>
+        <div class="rest-timer-bar__controls">
+          <button class="btn btn--secondary btn--sm" id="btn-rest-plus15">+15s</button>
+          <button class="btn btn--primary btn--sm" id="btn-rest-skip">Skip</button>
+        </div>
+      </div>
+
+      <!-- Workout Tools Row -->
+      <div class="workout-tools-row">
+        <button class="btn btn--secondary btn--sm" id="btn-plate-calc">Plate Calc</button>
+        <button class="btn btn--secondary btn--sm" id="btn-warmup-ladder">Warm-up</button>
+      </div>
+    `;
+
+    // Timer display interval
+    liveWorkoutTimer = setInterval(() => {
+      seconds++;
+      const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+      const s = String(seconds % 60).padStart(2, "0");
+      const el = $("#live-timer-display", container);
+      if (el) el.textContent = `${m}:${s}`;
+    }, 1000);
+
+    const setsContainer = $("#sets-container", container);
+
+    function renderSets() {
+      setsContainer.innerHTML = "";
+      sets.forEach((set, idx) => {
+        const row = document.createElement("div");
+        row.className = `set-grid-row ${set.done ? 'set-grid-row--completed' : ''}`;
+        row.innerHTML = `
+          <span class="set-grid-row__num">${set.num}</span>
+          <input type="number" class="set-grid-row__input set-weight-input" value="${set.weight}">
+          <input type="number" class="set-grid-row__input set-reps-input" value="${set.reps}">
+          <button class="set-grid-row__check" data-idx="${idx}" aria-label="Toggle set done">
+            ${Icons.check}
+          </button>
+        `;
+        setsContainer.appendChild(row);
+
+        $(".set-grid-row__check", row).onclick = () => {
+          set.done = !set.done;
+          if (set.done && window.pushpaAudio) {
+            window.pushpaAudio.playSetTick();
+            startRestTimer(90);
+          }
+          renderSets();
+        };
+      });
+    }
+    renderSets();
+
+    // Rest Timer Logic
+    let restRemaining = 90;
+    function startRestTimer(dur) {
+      if (restTimer) clearInterval(restTimer);
+      restRemaining = dur;
+      updateRestUI();
+      restTimer = setInterval(() => {
+        restRemaining--;
+        if (restRemaining <= 0) {
+          clearInterval(restTimer);
+          restTimer = null;
+          if (window.pushpaAudio) window.pushpaAudio.playRestChime();
+        }
+        updateRestUI();
+      }, 1000);
+    }
+
+    function updateRestUI() {
+      const txt = $("#rest-countdown-txt", container);
+      if (!txt) return;
+      const m = String(Math.floor(Math.max(0, restRemaining) / 60)).padStart(2, "0");
+      const s = String(Math.max(0, restRemaining) % 60).padStart(2, "0");
+      txt.textContent = `${m}:${s}`;
+    }
+
+    $("#btn-rest-plus15", container).onclick = () => {
+      restRemaining += 15;
+      updateRestUI();
+    };
+
+    $("#btn-rest-skip", container).onclick = () => {
+      if (restTimer) clearInterval(restTimer);
+      restTimer = null;
+      restRemaining = 0;
+      updateRestUI();
+    };
+
+    // Tools: Plate Calc
+    $("#btn-plate-calc", container).onclick = () => {
+      const plates = calculatePlates(70, 20);
+      showSheet({
+        title: "Plate Calculator (70 kg)",
+        contentHtml: `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <p style="font-size:14px; color:var(--dim);">Olympic Barbell: 20 kg</p>
+            <div style="font-size:15px; font-weight:700; color:var(--tx);">
+              Each side requires 25 kg:
+            </div>
+            <div style="display:flex; gap:8px;">
+              <span class="chip chip--accent">1 × 20 kg</span>
+              <span class="chip chip--accent">1 × 5 kg</span>
+            </div>
+          </div>
+        `
+      });
+    };
+
+    // Tools: Warmup Ladder
+    $("#btn-warmup-ladder", container).onclick = () => {
+      const ladder = generateWarmupLadder(70, 20);
+      let rowsHtml = ladder.map(step => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);">
+          <span>${step.reps} reps @ ${step.weight} kg</span>
+          <span style="color:var(--dim);">${step.pct}% load</span>
+        </div>
+      `).join("");
+
+      showSheet({
+        title: "Warm-Up Ladder",
+        contentHtml: `<div>${rowsHtml}</div>`
+      });
+    };
+
+    // Finish Workout
+    $("#btn-finish-live-workout").onclick = () => {
+      if (!state.planner.completedDays.includes(dayNumber)) {
+        state.planner.completedDays.push(dayNumber);
+      }
+      state.planner.currentDay = Math.min(state.planner.programLength, dayNumber + 1);
+      saveState(state);
+
+      showModal({
+        title: "Workout Complete!",
+        desc: "All sets logged. Progressive overload targets have been updated for your next session.",
+        confirmText: "Done",
+        onConfirm: () => mountPlannerToday()
+      });
+    };
+  });
 }
 
 /* ==========================================================================
-   BACKUP & RESTORE (Section 8)
+   MILESTONE 6: NOTION-STYLE FREE LOGBOOK MODE
    ========================================================================== */
 
-function initBackupRestore() {
-  $("#btn-export-backup")?.addEventListener("click", () => {
-    exportJSON(state);
-    state.backup = state.backup || {};
-    state.backup.lastBackupDate = new Date().toISOString();
-    saveState(state);
-    S.done();
-  });
+function mountLogbookSetup() {
+  setHeader({ title: "Logbook Split Setup" });
+  setNav(null);
 
-  const fileInput = $("#input-import-file");
-  $("#btn-trigger-import")?.addEventListener("click", () => fileInput?.click());
+  mountScreen("logbook-setup", (container) => {
+    container.innerHTML = `
+      <div class="card">
+        <h2 class="card__title">Choose Weekly Split</h2>
+        <p class="card__subtitle">Your default routine for freeform tracking.</p>
 
-  fileInput?.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      state = await importJSON(file);
-      alert("Backup successfully restored!");
-      location.reload();
-    } catch (err) {
-      alert("Invalid backup file: " + err.message);
-    }
-  });
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+          <button class="btn btn--secondary btn--block" id="btn-split-ppl">Push / Pull / Legs (6-Day)</button>
+          <button class="btn btn--secondary btn--block" id="btn-split-ul">Upper / Lower (4-Day)</button>
+          <button class="btn btn--secondary btn--block" id="btn-split-fb">Full Body (3-Day)</button>
+        </div>
+      </div>
+    `;
 
-  $("#btn-logout")?.addEventListener("click", () => {
-    state.auth.isLoggedIn = false;
-    state.auth.isGuest = false;
-    saveState(state);
-    switchScreen("s-auth");
+    $("#btn-split-ppl", container).onclick = () => {
+      state.logbook.setupCompleted = true;
+      saveState(state);
+      showToast("Split saved: Push / Pull / Legs");
+      mountLogbookLog();
+    };
+    $("#btn-split-ul", container).onclick = () => {
+      state.logbook.setupCompleted = true;
+      saveState(state);
+      showToast("Split saved: Upper / Lower");
+      mountLogbookLog();
+    };
+    $("#btn-split-fb", container).onclick = () => {
+      state.logbook.setupCompleted = true;
+      saveState(state);
+      showToast("Split saved: Full Body");
+      mountLogbookLog();
+    };
   });
 }
 
-function checkBackupReminder() {
-  const lastBackup = state.backup?.lastBackupDate;
-  if (!lastBackup) return;
-  const daysSince = (Date.now() - new Date(lastBackup).getTime()) / (1000 * 60 * 60 * 24);
-  if (daysSince > 7) {
-    console.log("Weekly backup reminder: It has been over 7 days since your last backup.");
+function mountLogbookLog() {
+  const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const curDayKey = dayNames[new Date().getDay()];
+  const suggestion = getSuggestedSessionForDay(DEFAULT_LAYOUT, [], curDayKey);
+
+  setHeader({
+    title: "Free Logbook",
+    actionsHtml: `
+      <button class="btn btn--primary btn--sm" id="btn-finish-log">Finish</button>
+    `
+  });
+  setNav("logbook", "log");
+
+  mountScreen("logbook", (container) => {
+    let exerciseBlocks = [
+      {
+        id: "ex_1",
+        name: "Incline Dumbbell Press",
+        lastTime: "Nov 18: 3 × 10 @ 32 kg • RPE 8.5",
+        sets: [{ weight: "", reps: "", feel: "" }]
+      }
+    ];
+
+    container.innerHTML = `
+      <!-- Session Selector Bar -->
+      <div class="logbook-session-bar">
+        <div>
+          <span class="caption">Today's Session</span>
+          <div class="logbook-session-chip" id="session-chip">
+            <span>${suggestion.sessionName}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <span class="caption">${new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+      </div>
+
+      <!-- Add Exercise Autocomplete Input -->
+      <div class="exercise-search-wrap">
+        <input type="text" id="log-exercise-search" class="form-input" placeholder="Type exercise name to add...">
+        <div class="exercise-autocomplete-dropdown" id="log-autocomplete" style="display:none;"></div>
+      </div>
+
+      <!-- Exercise Log Blocks Container -->
+      <div id="exercise-blocks-container" style="display:flex; flex-direction:column; gap:16px;"></div>
+    `;
+
+    const blocksContainer = $("#exercise-blocks-container", container);
+
+    function renderBlocks() {
+      blocksContainer.innerHTML = "";
+      exerciseBlocks.forEach((block, bIdx) => {
+        const card = document.createElement("div");
+        card.className = "log-block";
+        card.innerHTML = `
+          <div class="log-block__header">
+            <h3 class="log-block__title">${block.name}</h3>
+            <div class="log-block__actions">
+              <button class="spark-btn" data-bidx="${bIdx}" title="AI Overload Suggestion">
+                ${Icons.spark}
+              </button>
+              <button class="btn btn--ghost btn--icon" data-delblock="${bIdx}" aria-label="Delete Exercise" style="width:32px; height:32px;">
+                ${Icons.trash}
+              </button>
+            </div>
+          </div>
+
+          <!-- Display-only Quiet Last Time Reference Line -->
+          <div class="last-time-ref">
+            <span>Last time: <b>${block.lastTime}</b></span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+
+          <div id="spark-container-${bIdx}"></div>
+
+          <!-- Sets Table -->
+          <div class="log-table">
+            <div class="log-table__header">
+              <span>Set</span>
+              <span>Kg</span>
+              <span>Reps</span>
+              <span>Feel</span>
+              <span></span>
+            </div>
+            <div id="sets-list-${bIdx}" style="display:flex; flex-direction:column; gap:6px;">
+              ${block.sets.map((s, sIdx) => `
+                <div class="log-table__row">
+                  <span style="font-weight:700; color:var(--dim); text-align:center;">${sIdx + 1}</span>
+                  <input type="number" class="log-table__input" placeholder="-" value="${s.weight || ''}">
+                  <input type="number" class="log-table__input" placeholder="-" value="${s.reps || ''}">
+                  <input type="text" class="log-table__input" placeholder="Good" value="${s.feel || ''}">
+                  <button class="log-table__delete-btn" data-delset="${bIdx}:${sIdx}">${Icons.trash}</button>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+            <button class="btn btn--ghost btn--sm" data-addset="${bIdx}">+ Add Set</button>
+            <input type="text" class="form-input" style="flex:1; max-width:200px; min-height:34px; font-size:12px;" placeholder="Remark (optional)...">
+          </div>
+        `;
+        blocksContainer.appendChild(card);
+
+        // Add set
+        $(`[data-addset="${bIdx}"]`, card).onclick = () => {
+          block.sets.push({ weight: "", reps: "", feel: "" });
+          renderBlocks();
+        };
+
+        // Delete set
+        $$(`[data-delset]`, card).forEach(btn => {
+          btn.onclick = () => {
+            const [b, s] = btn.getAttribute("data-delset").split(":").map(Number);
+            exerciseBlocks[b].sets.splice(s, 1);
+            renderBlocks();
+          };
+        });
+
+        // Delete block
+        $(`[data-delblock="${bIdx}"]`, card).onclick = () => {
+          exerciseBlocks.splice(bIdx, 1);
+          renderBlocks();
+        };
+
+        // Spark Suggestion Popover
+        $(`.spark-btn[data-bidx="${bIdx}"]`, card).onclick = () => {
+          const sparkBox = $(`#spark-container-${bIdx}`, card);
+          if (sparkBox.innerHTML) {
+            sparkBox.innerHTML = "";
+            return;
+          }
+          const sugg = getExerciseSuggestion({
+            exerciseName: block.name,
+            history: [{ weight: 32, reps: 10, feel: "easy", sets: 3 }]
+          });
+
+          sparkBox.innerHTML = `
+            <div class="spark-popover">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--accent);">AI Overload Spark</span>
+                <span class="chip chip--accent" style="font-size:10px;">${sugg.action}</span>
+              </div>
+              <p style="font-size:12px; color:var(--tx);">${sugg.explanation}</p>
+              <button class="btn btn--primary btn--sm" id="btn-apply-spark-${bIdx}">Apply Suggestion</button>
+            </div>
+          `;
+
+          $(`#btn-apply-spark-${bIdx}`, sparkBox).onclick = () => {
+            block.sets.forEach(s => {
+              if (sugg.targetWeight) s.weight = sugg.targetWeight;
+              if (sugg.targetReps) s.reps = sugg.targetReps;
+            });
+            sparkBox.innerHTML = "";
+            renderBlocks();
+            showToast("Applied AI suggestion to sets!");
+          };
+        };
+      });
+    }
+    renderBlocks();
+
+    // Autocomplete handling
+    const searchInput = $("#log-exercise-search", container);
+    const dropEl = $("#log-autocomplete", container);
+
+    searchInput.oninput = () => {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        dropEl.style.display = "none";
+        return;
+      }
+      const matches = EXERCISE_LIBRARY.filter(e => e.name.toLowerCase().includes(q)).slice(0, 5);
+      if (matches.length === 0) {
+        dropEl.innerHTML = `<div class="autocomplete-item" id="auto-create">Create custom: "<b>${searchInput.value}</b>"</div>`;
+      } else {
+        dropEl.innerHTML = matches.map(m => `<div class="autocomplete-item" data-name="${m.name}">${m.name}</div>`).join("");
+      }
+      dropEl.style.display = "block";
+
+      $$(".autocomplete-item", dropEl).forEach(item => {
+        item.onclick = () => {
+          const exName = item.getAttribute("data-name") || searchInput.value.trim();
+          exerciseBlocks.push({
+            id: `ex_${Date.now()}`,
+            name: exName,
+            lastTime: "First time logging this move",
+            sets: [{ weight: "", reps: "", feel: "" }]
+          });
+          searchInput.value = "";
+          dropEl.style.display = "none";
+          renderBlocks();
+        };
+      });
+    };
+
+    // Finish session
+    $("#btn-finish-log").onclick = () => {
+      showModal({
+        title: "Finish & Save Session?",
+        desc: "All logged exercises will be archived to your history and consistency streak.",
+        confirmText: "Finish",
+        onConfirm: () => {
+          state.logbook.logs.push({
+            date: new Date().toISOString(),
+            session: suggestion.sessionName,
+            exercises: exerciseBlocks
+          });
+          saveState(state);
+          showToast("Session saved to History!");
+          mountLogbookHistory();
+        }
+      });
+    };
+  });
+}
+
+function mountLogbookHistory() {
+  setHeader({ title: "History Timeline" });
+  setNav("logbook", "history");
+
+  mountScreen("logbook-history", (container) => {
+    container.innerHTML = `
+      <div class="card">
+        <h3 class="card__title">Past Workout Logs</h3>
+        <p class="card__subtitle">Grouped chronologically by completion date.</p>
+      </div>
+
+      <div class="history-item">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:800; font-size:16px;">Push Overload</span>
+          <span class="caption">Nov 21, 2026</span>
+        </div>
+        <div style="font-size:13px; color:var(--dim);">
+          • Incline Dumbbell Press (3 × 10 @ 32 kg)<br>
+          • Barbell Overhead Press (3 × 8 @ 45 kg)<br>
+          • Tricep Rope Extensions (3 × 12 @ 22 kg)
+        </div>
+      </div>
+
+      <div class="history-item">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:800; font-size:16px;">Pull & Posterior</span>
+          <span class="caption">Nov 19, 2026</span>
+        </div>
+        <div style="font-size:13px; color:var(--dim);">
+          • Weighted Pull-Ups (3 × 6 @ +10 kg)<br>
+          • Barbell Chest-Supported Rows (3 × 10 @ 65 kg)<br>
+          • Incline Dumbbell Curls (3 × 10 @ 14 kg)
+        </div>
+      </div>
+    `;
+  });
+}
+
+function mountLogbookReports() {
+  setHeader({ title: "Reports & Overload" });
+  setNav("logbook", "reports");
+
+  mountScreen("logbook-reports", (container) => {
+    container.innerHTML = `
+      <div class="card">
+        <h3 class="card__title">Consistency Report</h3>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <div class="stat-card" style="flex:1;">
+            <span class="stat-card__label">Consistency</span>
+            <span class="stat-card__val">92%</span>
+          </div>
+          <div class="stat-card" style="flex:1;">
+            <span class="stat-card__label">This Week</span>
+            <span class="stat-card__val">5/6</span>
+          </div>
+          <div class="stat-card" style="flex:1;">
+            <span class="stat-card__label">Streak</span>
+            <span class="stat-card__val">3 wks</span>
+          </div>
+        </div>
+        <p style="font-size:13px; color:var(--dim); margin-top:10px;">
+          You completed 92% of scheduled sessions over the past 4 weeks with zero missed push days.
+        </p>
+      </div>
+    `;
+  });
+}
+
+/* ==========================================================================
+   MILESTONE 7: GUIDED HOME WORKOUTS & 2D SKELETON
+   ========================================================================== */
+
+function mountGuided() {
+  setHeader({
+    title: "Guided Home Workout",
+    showBack: true,
+    onBack: () => mountPlannerToday()
+  });
+  setNav(null);
+
+  mountScreen("guided", (container) => {
+    let currentRoutineKey = "full_body";
+    let routine = GUIDED_ROUTINES[currentRoutineKey];
+    let moveIdx = 0;
+    let secondsLeft = 30;
+    let isPaused = false;
+
+    const allMoves = [...routine.warmup, ...routine.main, ...routine.cooldown];
+    let activeMove = GUIDED_MOVES.find(m => m.id === allMoves[moveIdx]) || GUIDED_MOVES[0];
+
+    container.innerHTML = `
+      <!-- Top Stage with 2D Character Animation -->
+      <div class="character-stage">
+        <svg class="character-svg" viewBox="0 0 200 200" fill="none" id="char-canvas">
+          <!-- Torso & Head -->
+          <circle cx="100" cy="50" r="14" fill="#E5E5E5"/>
+          <line x1="100" y1="64" x2="100" y2="120" stroke="#E5E5E5" stroke-width="8" stroke-linecap="round"/>
+          
+          <!-- Limbs with Joint Angles -->
+          <line id="joint-arm-l" x1="100" y1="75" x2="65" y2="100" stroke="#FF6A00" stroke-width="6" stroke-linecap="round"/>
+          <line id="joint-arm-r" x1="100" y1="75" x2="135" y2="100" stroke="#FF6A00" stroke-width="6" stroke-linecap="round"/>
+          <line id="joint-leg-l" x1="100" y1="120" x2="80" y2="175" stroke="#E5E5E5" stroke-width="6" stroke-linecap="round"/>
+          <line id="joint-leg-r" x1="100" y1="120" x2="120" y2="175" stroke="#E5E5E5" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <!-- Move Info Card -->
+      <div class="move-info-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 class="move-info-card__title" id="guided-move-name">${activeMove.name}</h2>
+          <span class="guided-calorie-pill tabular-num" id="guided-calories">~24 kcal</span>
+        </div>
+        <div class="move-info-card__target tabular-num" id="guided-countdown">00:30</div>
+        <p class="move-info-card__cues" id="guided-cues">${activeMove.cues[0] || 'Keep core tight.'}</p>
+      </div>
+
+      <!-- Controls Row: Skip | Pause | Done -->
+      <div class="guided-controls-row">
+        <button class="btn btn--secondary" id="guided-skip-btn">Skip</button>
+        <button class="btn btn--secondary" id="guided-pause-btn">Pause</button>
+        <button class="btn btn--primary" id="guided-done-btn">Done</button>
+      </div>
+    `;
+
+    // Guided countdown loop
+    guidedTimer = setInterval(() => {
+      if (isPaused) return;
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        nextMove();
+      }
+      updateGuidedUI();
+    }, 1000);
+
+    function updateGuidedUI() {
+      const countEl = $("#guided-countdown", container);
+      if (countEl) {
+        countEl.textContent = `00:${String(Math.max(0, secondsLeft)).padStart(2, "0")}`;
+      }
+    }
+
+    function nextMove() {
+      moveIdx++;
+      if (moveIdx >= allMoves.length) {
+        clearInterval(guidedTimer);
+        showModal({
+          title: "Home Workout Complete!",
+          desc: "Great energy. How did it feel? (Helps calibrate future moves)",
+          confirmText: "Save & Finish",
+          onConfirm: () => mountPlannerToday()
+        });
+        return;
+      }
+      activeMove = GUIDED_MOVES.find(m => m.id === allMoves[moveIdx]) || GUIDED_MOVES[0];
+      secondsLeft = activeMove.defaultDuration || 30;
+      $("#guided-move-name", container).textContent = activeMove.name;
+      $("#guided-cues", container).textContent = activeMove.cues[0] || "Focus on form.";
+      if (window.pushpaAudio) window.pushpaAudio.playSetTick();
+      updateGuidedUI();
+    }
+
+    $("#guided-skip-btn", container).onclick = nextMove;
+    $("#guided-done-btn", container).onclick = nextMove;
+    $("#guided-pause-btn", container).onclick = () => {
+      isPaused = !isPaused;
+      $("#guided-pause-btn", container).textContent = isPaused ? "Resume" : "Pause";
+    };
+  });
+}
+
+/* ==========================================================================
+   APPLICATION ENTRYPOINT
+   ========================================================================== */
+
+function initApp() {
+  applyThemeAndAccent();
+
+  // If user is logged in and intro not needed, route directly
+  if (state.auth && state.auth.isLoggedIn) {
+    checkAndRunIntro(() => {
+      routeAfterAuth();
+    });
+  } else {
+    checkAndRunIntro(() => {
+      mountAuth();
+    });
   }
+}
+
+// Kickoff
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
 }

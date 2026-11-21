@@ -1,45 +1,37 @@
-# 🍏 PUSHPA — IPHONE & IOS TESTING & INSTALLATION GUIDE
+# PUSHPA iOS Deployment Guide
 
-## 🎯 How iPhone Users Run PUSHPA (Zero Friction PWA)
+## 1. Web Progressive Web App (Available Now)
+iPhone does not allow installing standalone `.apk` or `.ipa` packages directly from a browser without enterprise certificates or TestFlight. However, PUSHPA is fully PWA-optimized:
 
-Apple restricts raw `.ipa` file distribution (requiring a Mac, Xcode, and a $99/yr Apple Developer Account for TestFlight). However, **PUSHPA** is built as an installable standalone Web App that gives iPhone users the exact same experience as an App Store app without needing any downloads or app store approvals!
-
----
-
-### 📲 Step-by-Step iPhone Installation:
-
-1. Open **Safari** on the iPhone and navigate to:  
-   👉 **[https://setly-zeta.vercel.app/](https://setly-zeta.vercel.app/)**
-2. Tap the **Share** button at the bottom of the screen (the square with an arrow pointing up: `↑`).
-3. Scroll down the actions sheet and tap **Add to Home Screen** (`➕`).
-4. You will see the glowing flame icon and name **Pushpa**. Tap **Add** in the top right corner.
-5. The **Pushpa** app icon is now placed directly on the home screen!
+1. Open **https://setly-zeta.vercel.app/** in Safari on your iPhone.
+2. Tap the **Share** button (box with upward arrow at bottom of Safari).
+3. Scroll down and tap **Add to Home Screen**.
+4. Tap **Add** in the top right.
+5. Pushpa will appear on your Home Screen as a native app icon, running in full-screen standalone mode with offline caching enabled.
 
 ---
 
-### 🚀 What the User Experiences on iPhone:
-
-- **Full-Screen Standalone Mode**: No Safari search bar, no navigation buttons, no tabs.
-- **Dark Fire Theme**: Immersive `#050505` OLED black with glowing flame accents and responsive UI.
-- **Instant Web Audio**: Real-time sound chimes and cinematic intro audio powered by Web Audio API.
-- **Offline Persistence**: All workout programs, logbook entries, and history are stored securely in local device storage.
-- **Haptic & Touch Responsiveness**: Native active press states, bottom sheets, and zero input contrast glitches.
+## 2. Message to Send an iPhone Friend
+> "Hey! Check out PUSHPA — my adaptive workout planner and progressive overload engine. Open https://setly-zeta.vercel.app/ in Safari, tap Share -> 'Add to Home Screen', and it installs like a native app!"
 
 ---
 
-## 🛠️ Native iOS Compilation (For Developers with a Mac)
-
-The project includes `capacitor.config.json` configured for iOS:
-
-```bash
-# On macOS:
-npm install @capacitor/core @capacitor/cli @capacitor/ios
-npx cap add ios
-npx cap copy ios
-npx cap open ios
-```
-
-In Xcode:
-1. Set the Bundle Identifier to `com.pushpa.app`.
-2. Select your Team under Signing & Capabilities.
-3. Select your connected iPhone and press **Run** (Cmd + R) or Archive for TestFlight distribution.
+## 3. Native App Store Build via Xcode (For Future Mac + Apple Developer Account)
+When you have access to macOS and an Apple Developer Team account:
+1. Prerequisites:
+   - macOS Sonoma or newer
+   - Xcode 15+
+   - Active Apple Developer account ($99/year)
+2. Add iOS platform:
+   ```bash
+   npm install @capacitor/ios
+   npx cap add ios
+   npx cap sync ios
+   npx cap open ios
+   ```
+3. In Xcode:
+   - Select the `App` target.
+   - Go to **Signing & Capabilities** and choose your Development Team.
+   - Set Bundle Identifier to `com.pushpa.app`.
+   - Connect your iPhone via USB, select it as destination device, and press **Run** (Cmd + R) to install directly.
+   - For App Store distribution, select **Product** > **Archive**, and submit via TestFlight / App Store Connect.

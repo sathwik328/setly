@@ -262,6 +262,55 @@ export function runMissedDayUnitTests() {
     passed: c4Transition.missedCount === 5 && c4NextMon.sessionName === "Push"
   });
 
+  // Case 5: Layout Mon Push, Wed Pull, Fri Legs (rest days between): miss Monday -> Tue Push (catch-up), Wed Pull, Fri Legs
+  const c5Layout = {
+    mon: "Push",
+    tue: "Rest",
+    wed: "Pull",
+    thu: "Rest",
+    fri: "Legs",
+    sat: "Rest",
+    sun: "Rest"
+  };
+  let c5Completed = [];
+  // Miss Monday
+  const c5Tue = getSuggestedSessionForDay(c5Layout, c5Completed, "tue"); // Tue is template rest, but Push is pending!
+  c5Completed.push("Push");
+  const c5Wed = getSuggestedSessionForDay(c5Layout, c5Completed, "wed"); // Pull
+  c5Completed.push("Pull");
+  const c5Fri = getSuggestedSessionForDay(c5Layout, c5Completed, "fri"); // Legs
+  c5Completed.push("Legs");
+
+  results.push({
+    test: "Case 5: Layout with rest days between: miss Monday -> Tue Push catch-up, Wed Pull, Fri Legs",
+    passed: c5Tue.sessionName === "Push" && c5Tue.isCatchUp === true &&
+            c5Wed.sessionName === "Pull" && c5Fri.sessionName === "Legs"
+  });
+
   console.log("LOGBOOK MISSED-DAY UNIT TESTS:", results);
   return results;
+}
+
+/**
+ * Convenience helper for inline UI spark suggestions
+ */
+export function getExerciseSuggestion({ exerciseName, sessionType = "Push", history = [] } = {}) {
+  const pastLogs = history.length > 0 ? [{
+    sessionName: sessionType,
+    exercises: [{
+      name: exerciseName,
+      tag: history[0]?.feel || "good",
+      sets: Array(history[0]?.sets || 3).fill({ reps: history[0]?.reps || 10, weight: history[0]?.weight || 70 })
+    }]
+  }] : [];
+  const res = suggestionEngine.suggest(exerciseName, sessionType, pastLogs);
+  let action = "Maintain Load";
+  if (res.type === "increase") action = "+1-2 Reps / Progression";
+  else if (res.type === "warning") action = "Deload / Swap";
+  return {
+    action,
+    explanation: res.text,
+    targetWeight: history[0]?.weight ? (res.type === "warning" ? Math.round(history[0].weight * 0.8) : history[0].weight) : 70,
+    targetReps: history[0]?.reps ? (res.type === "increase" ? history[0].reps + 2 : history[0].reps) : 10
+  };
 }

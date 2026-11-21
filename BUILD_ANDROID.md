@@ -1,68 +1,36 @@
-# 📱 PUSHPA — ANDROID (APK) BUILD & DISTRIBUTION GUIDE
+# PUSHPA Android Build & Install Guide
 
-This guide details how to build and install the standalone Android APK for **PUSHPA** (`com.pushpa.app`) to share with friends.
+## 1. Quick Cloud Download (Recommended)
+You do not need to install Android Studio or Java on your PC. The GitHub Actions workflow (`.github/workflows/android.yml`) automatically builds the debug APK on push to `main` and on any tag matching `pushpa-*`.
 
----
-
-## ⚡ Method 1: Instant Cloud APK via PWABuilder (Zero Setup — 60 Seconds)
-
-Because PUSHPA has a complete PWA Manifest, custom layered fire flame launcher icons, and offline Service Worker:
-
-1. Visit **[PWABuilder](https://www.pwabuilder.com)** in any browser.
-2. Enter your live Vercel URL:  
-   `https://setly-zeta.vercel.app/`
-3. Click **Start**. PWABuilder verifies the manifest, fire theme `#050505`, icons, and service worker (100% PWA score).
-4. Click **Package For Stores** → Select **Android**.
-5. Set Package ID to `com.pushpa.app` and App Name to `Pushpa`.
-6. Click **Generate** and download your package zip.
-7. Inside the downloaded zip you have `app-debug.apk` and signed APKs ready to install!
-8. Send this `.apk` directly to friends via WhatsApp, Telegram, or Google Drive.
+1. Go to the GitHub repository: **https://github.com/sathwik328/setly**
+2. Click **Releases** on the right side (or **Actions** > **Build Android APK**).
+3. Download `pushpa-debug.apk` directly to your Android phone.
+4. On your phone, tap the downloaded `.apk` file:
+   - If prompted "Install unknown apps", tap **Settings** and toggle **Allow from this source**.
+   - Tap **Install**.
+   - Tap **Open**.
+5. Pushpa will launch in full-screen native mode, running 100% offline from internal storage with zero browser chrome!
 
 ---
 
-## ☁️ Method 2: GitHub Actions Cloud Build
-
-A complete CI/CD workflow is configured in `.github/workflows/android.yml`:
-- Runs Ubuntu runner with Node 20 and JDK 17.
-- Automatically copies web assets into the Capacitor Android container.
-- Builds `app-debug.apk` via Gradle.
-- Publishes the compiled `.apk` as a downloadable artifact under the GitHub repository **Actions** tab (`pushpa-debug-apk`).
-
-*(Note: If your personal GitHub token has the `workflow` scope enabled, each push to `main` automatically compiles this artifact in the cloud).*
+## 2. Message to Send an Android Friend
+> "Hey! Check out PUSHPA — my new workout planner app. It has an automated progressive overload planner, a Notion-style free logbook, and guided 2D home workouts. Runs completely offline on your phone: https://github.com/sathwik328/setly/releases"
 
 ---
 
-## 💻 Method 3: Local Compilation with Capacitor & Android Studio
-
-If you wish to compile locally:
-
-### Prerequisites:
-- Node.js (already installed)
-- Java Development Kit (JDK 17 or 21)
-- Android Studio or Android SDK Command-line tools
-
-### Step-by-Step Commands:
-```powershell
-# In D:\Workout Planner:
-npm install @capacitor/core @capacitor/cli @capacitor/android
-npx cap add android
-npx cap copy android
-npx cap open android
-```
-
-In Android Studio:
-1. Allow Gradle sync to complete.
-2. Click **Build** → **Build Bundle(s) / APK(s)** → **Build APK(s)**.
-3. Once completed, click **locate** to retrieve `app-debug.apk`.
-
----
-
-## 📲 How Your Friends Install the APK on Android:
-
-1. Send your friend the `Pushpa.apk` (or `app-debug.apk`).
-2. When they tap the file in WhatsApp or their file manager, Android prompts:
-   > *"For your security, your phone is not allowed to install unknown apps from this source."*
-3. They tap **Settings** → toggle **Allow from this source**.
-4. Tap **Install**.
-5. The **Pushpa** flame icon appears on their home screen!
-6. It runs full-screen, completely offline, with local-first workout tracking and no login barrier.
+## 3. Local Build with Android Studio (Optional)
+If you ever want to build or sign the app manually on a computer:
+1. Prerequisites:
+   - Node.js 18+
+   - Android Studio (Electric Eel or newer) with Android SDK 34
+2. Open terminal in the project directory:
+   ```bash
+   npm install
+   npx cap sync android
+   npx cap open android
+   ```
+3. In Android Studio:
+   - Wait for Gradle sync to complete.
+   - Click **Build** > **Build Bundle(s) / APK(s)** > **Build APK(s)**.
+   - Locate the APK in `android/app/build/outputs/apk/debug/app-debug.apk`.
